@@ -1,3 +1,5 @@
 .stack-work/
 RestaurantReservation.cabal
+stack.yaml.lock
+*.data
 *~

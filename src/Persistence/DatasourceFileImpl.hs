@@ -26,7 +26,7 @@ instance (Read t, Show t, Monoid t) => Datasource IO t where
 
 -- | create valid file name for a given name
 fileNameFor :: String -> FilePath
-fileNameFor name = name ++ ".txt"
+fileNameFor name = name ++ ".data"
 
 -- | read String from file fileName and then parse the contents as a Read instance.
 parseFromTxtFile :: Read a => FilePath -> IO a

@@ -63,11 +63,12 @@ up = do
 
 
 -- | convenience function that opens the swagger UI in the default web browser
-launchSiteInBrowser:: Int -> IO (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
-launchSiteInBrowser port =
+launchSiteInBrowser:: Int -> IO ()
+launchSiteInBrowser port = do
   case os of
     "mingw32" -> createProcess  (shell $ "start "    ++ url)
     "darwin"  -> createProcess  (shell $ "open "     ++ url)
     _         -> createProcess  (shell $ "xdg-open " ++ url)
+  return ()
   where 
     url = "http://localhost:" ++ show port ++ "/swagger-ui"
