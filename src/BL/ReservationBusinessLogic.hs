@@ -6,8 +6,12 @@ import           Data.Aeson      --(FromJSON, ToJSON)
 import           GHC.Generics
 import           Data.Time.Calendar
 import           Data.Time.Clock
-import           Data.Map (Map)
-import qualified Data.Map as Map
+--import           Control.Monad
+import qualified Data.Map.Strict as M
+import Polysemy
+import Polysemy.Error
+
+import BL.KVS
 
 {--
 This module implements the business logic for seat reservations in a very small boutique restaurant.
@@ -24,22 +28,29 @@ data Reservation = Reservation {
 } deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 
 -- | ReservationTable holds a list of reservations for each date
-type ReservationTable = Map Day [Reservation]
+type ReservationTable = KVS Day [Reservation]
+
+type ReservationMap = M.Map Day [Reservation]
 
 -- | the total number of seats in the restaurant
 maxCapacity :: Int
 maxCapacity = 20   
 
--- | The Restaurant name
-restaurant :: String
-restaurant = "My Mum Made" 
+list :: Member ReservationTable r => Sem r (M.Map Day [Reservation])
+list = fmap M.fromList listAllKvs
+
+fetch :: Member ReservationTable r => Day -> Sem r (Maybe [Reservation])
+fetch = getKvs
+  
+data ReservationError = ReservationNotPossible String
 
 -- | computes the number of available seats for a given date
-availableCapacity :: ReservationTable -> Day -> Int -> Int
-availableCapacity table day totalCapacity =
-  case Map.lookup day table of
-    Nothing  -> totalCapacity
-    Just res -> totalCapacity - usedCapacity res
+availableCapacity :: Member ReservationTable r => Day -> Int -> Sem r Int
+availableCapacity day totalCapacity = do
+  reservationsOnDay <- getKvs day
+  case reservationsOnDay of
+    Nothing  -> return totalCapacity
+    Just res -> return $ totalCapacity - usedCapacity res
 
 -- | computes the number of reserved seats for a list of reservations
 usedCapacity :: [Reservation] -> Int
@@ -48,17 +59,24 @@ usedCapacity (Reservation _ _ _ quantity : rest) = quantity + usedCapacity rest
 
 -- | try to add a reservation to the table.
 -- | Return Just the modified table if successful, else return Nothing
-tryReservation :: ReservationTable -> Reservation -> Int -> Maybe ReservationTable
-tryReservation table res@(Reservation date _ _ requestedQuantity) totalCapacity =
-  if availableCapacity table date totalCapacity >= requestedQuantity
-    then Just (addReservation table res)
-    else Nothing
+--tryReservation :: ReservationTable -> Reservation -> Int -> Maybe ReservationTable
+tryReservation :: (Member ReservationTable r, 
+                   Member (Error ReservationError) r) => Reservation -> Sem r ()
+tryReservation res@(Reservation date _ _ requestedQuantity)  = do
+  availableSeats <- availableCapacity date maxCapacity
+  if availableSeats >= requestedQuantity
+    then 
+      do addReservation res
+         return ()
+    else throw $ ReservationNotPossible "we are fully booked"
 
 -- | add a reservation to the reservation table
-addReservation :: ReservationTable -> Reservation -> ReservationTable
-addReservation table reservation@(Reservation date _ _ _ ) = Map.alter matchAction date table
-  where
-    matchAction :: Maybe [Reservation] -> Maybe [Reservation]
-    matchAction Nothing             = Just [reservation]
-    matchAction (Just reservations) = Just $ reservation : reservations
-
+addReservation :: (Member (KVS Day [Reservation]) r)  => Reservation -> Sem r [Reservation]
+addReservation x@(Reservation date _ _ _ ) = do
+  resList <- getKvs date
+  let reserved = case resList of
+        Nothing -> [x]
+        Just xs -> x:xs
+  insertKvs date reserved
+  return reserved
+    
