@@ -18,6 +18,7 @@ import           Data.ByteString.Lazy.Char8 (pack)
 
 import           Rest.ReservationService
 import           Integration.ReservationIntegration
+import Polysemy.Trace (traceToIO)
 
 initReservations :: ReservationMap
 initReservations = M.singleton day res
@@ -34,6 +35,7 @@ createApp = do
                 & runKvsOnMapState
                 & runStateIORef @(ReservationMap) kvsIORef
                 & runError @ReservationError
+                & traceToIO
                 & runM
                 & liftToHandler
     liftToHandler = Handler . ExceptT . (fmap handleErrors)

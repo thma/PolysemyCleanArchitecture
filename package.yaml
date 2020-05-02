@@ -16,7 +16,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/RestaurantReservation#readme>
+description:         Please see the README on GitHub at <https://github.com/thma/RestaurantReservation#readme>
 
 ghc-options:
   - -fplugin=Polysemy.Plugin
@@ -27,33 +27,17 @@ dependencies:
 - aeson-pretty
 - servant-server
 - servant
-#- servant-docs
-#- servant-swagger
-#- servant-swagger-ui
-#- servant-swagger-ui-core
-#- swagger2
-- string-conversions
-- libiserv
-- base-compat-batteries
 - time
 - wai
 - warp
 - bytestring
 - http-types
 - text
-- lens
-- transformers
-- directory
-- mtl
-- process
-- exceptions
-- http-media
-- time
 - containers
-- strict
 - polysemy
 - polysemy-plugin
 - errors
+- mtl
 
 library:
   source-dirs: src

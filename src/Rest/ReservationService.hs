@@ -14,6 +14,7 @@ import           Polysemy.Error
 
 import qualified Integration.ReservationIntegration as Int
 import qualified Domain.ReservationBusinessLogic    as Dom
+import Polysemy.Trace (Trace)
 
 -- | REST api for Restaurant Reservations
 type ReservationAPI =
@@ -24,7 +25,7 @@ type ReservationAPI =
                       :> Post    '[ JSON] ()
 
 -- | implements the ReservationAPI
-reservationServer :: (Member Int.ReservationTable r, Member (Error Int.ReservationError) r) => ServerT ReservationAPI (Sem r)
+reservationServer :: (Member Int.ReservationTable r, Member (Error Int.ReservationError) r, Member Trace r) => ServerT ReservationAPI (Sem r)
 reservationServer =
         Int.listAll        -- GET  /reservations
   :<|>  Int.tryReservation -- POST /reservations
