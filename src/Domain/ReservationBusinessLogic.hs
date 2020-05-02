@@ -43,8 +43,8 @@ usedCapacity :: [Reservation] -> Int
 usedCapacity [] = 0
 usedCapacity (Reservation _ _ _ quantity : rest) = quantity + usedCapacity rest
 
--- | try to add a reservation to the table.
--- | Return Just the modified table if successful, else return Nothing
+-- | check whether it is possible to add a reservation to the table.
+-- | Return True if successful, else return False
 isReservationPossible :: Reservation -> Maybe [Reservation] -> Bool
 isReservationPossible res@(Reservation date _ _ requestedQuantity) reservationsOnDay =
   let

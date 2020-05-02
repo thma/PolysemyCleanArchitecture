@@ -15,12 +15,12 @@ main = hspec spec
 day1 = fromGregorian 2020 1 29
 reservation1 = Reservation day1 "Andrew M. Jones" "amjones@example.com" 4
 reservation2 = Reservation day1 "Thomas Miller" "tm@example.com" 3
---table = Map.fromList [(day1, [reservation1, reservation2])] :: ReservationTable
+list  = [reservation1, reservation2]
 totalCapacity = 20
-restaurant = "MyMumMade"
 
 spec :: Spec
-spec = undefined
+spec = do
+  return ()
 {--
 spec =
   describe "persistence" $ do

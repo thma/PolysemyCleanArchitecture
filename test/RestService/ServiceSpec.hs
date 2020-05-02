@@ -10,7 +10,8 @@ main :: IO ()
 main = hspec spec
 
 spec :: Spec
-spec = undefined
+spec = do
+  return ()
 {--
 spec =
   with (return createApp) $ 
