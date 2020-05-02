@@ -6,7 +6,6 @@ import           Data.Function ((&))
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.State
---import           Polysemy.Resource
 import Polysemy.Trace (Trace, traceToIO)
 import qualified Data.Map.Strict as M
 import           Data.IORef
@@ -27,29 +26,14 @@ import Control.Exception
 
 runAllEffects :: IORef ReservationMap
               -> (forall r. Members [ReservationTable, Error ReservationError, Trace] r => Sem r a)
-              -> IO a
+              -> IO (Either ReservationError a)
 runAllEffects kvsIORef program =
   program
     & runKvsOnMapState
     & runStateIORef @(ReservationMap) kvsIORef
---    & fromEither -- @(Either ReservationError)
     & runError @ReservationError
     & traceToIO
     & runM
-    & liftToHandler
-
-
-liftToHandler :: IO (Either ReservationError a) -> IO a
-liftToHandler e = do
-  either <- e
-  handleErrors either
-
--- lliftToHandler = Handler . ExceptT . (fmap _handleErrors)
-
-handleErrors :: Either ReservationError a -> IO a
---handleErrors (Left (ReservationNotPossible msg)) = return . id 
-handleErrors (Right x) = return x
---handleErrors (Right value) = Right value
 
 initReservations :: ReservationMap
 initReservations = M.singleton day res
@@ -57,14 +41,22 @@ initReservations = M.singleton day res
     day = fromGregorian 2020 5 2
     res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
 
-main :: IO ()
+main :: IO (Either ReservationError ())
 main = do
   putStrLn "testing the reservation API without a REST server"
   kvsIORef <- newIORef initReservations
   let day = fromGregorian 2020 5 2
-  let reservation1 = Reservation day "Gabriella Jones" "gjones@example.com" 16
+  let reservation1 = Reservation day "Gabriella Jones" "gjones@example.com" 4
 
-  runAllEffects kvsIORef (tryReservation reservation1)
-  --putStrLn "done.."
+  runAllEffects kvsIORef 
+    (do tryReservation reservation1 
+        listAll 
+        tryReservation reservation1 
+        tryReservation reservation1 
+        tryReservation reservation1 
+        listAll
+        tryReservation reservation1
+    )
+  
 
 

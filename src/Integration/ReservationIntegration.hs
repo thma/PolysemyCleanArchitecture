@@ -42,7 +42,9 @@ type ReservationMap = M.Map Day [Reservation]
 listAll :: (Member ReservationTable r, Member Trace r) => Sem r (ReservationMap)
 listAll = do
   trace "listing all reservation entries"
-  fmap M.fromList listAllKvs
+  result <- fmap M.fromList listAllKvs
+  trace (show result)
+  return result
 
 -- | fetch the list of reservations for a given day from the key value store.
 --   If no match is found, Nothings is returned, else the Result wrapped with Just. 
