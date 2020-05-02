@@ -12,21 +12,22 @@ import           Data.ByteString.Lazy.Char8 (pack)
 import           Polysemy
 import           Polysemy.Error
 
-import qualified BL.ReservationBusinessLogic as BL
+import qualified Integration.ReservationIntegration as Int
+import qualified Domain.ReservationBusinessLogic    as Dom
 
 -- | REST api for Restaurant Reservations
 type ReservationAPI =
        "reservations" :> Summary "retrieve all reservations"
-                      :> Get     '[ JSON] BL.ReservationMap
+                      :> Get     '[ JSON] Int.ReservationMap
   :<|> "reservations" :> Summary "place a new reservation"
-                      :> ReqBody '[ JSON] BL.Reservation
+                      :> ReqBody '[ JSON] Dom.Reservation
                       :> Post    '[ JSON] ()
 
 -- | implements the ReservationAPI
-reservationServer :: ( Member BL.ReservationTable r, Member (Error BL.ReservationError) r) => ServerT ReservationAPI (Sem r)
+reservationServer :: (Member Int.ReservationTable r, Member (Error Int.ReservationError) r) => ServerT ReservationAPI (Sem r)
 reservationServer =
-        BL.list           -- GET  /reservations
-  :<|>  BL.tryReservation -- POST /reservations
+        Int.listAll        -- GET  /reservations
+  :<|>  Int.tryReservation -- POST /reservations
 
 -- | boilerplate needed to guide type inference
 reservationAPI :: Proxy ReservationAPI

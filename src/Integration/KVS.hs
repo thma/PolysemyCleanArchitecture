@@ -1,11 +1,12 @@
 {-# LANGUAGE TemplateHaskell #-}
-module BL.KVS where
+module Integration.KVS where
 
 import Control.Monad
 import Polysemy
 import Polysemy.State
 import qualified Data.Map.Strict as M
 
+-- | a key value store specified in terms of Polysemy
 data KVS k v m a where
   ListAllKvs :: KVS k v m [(k, v)]
   GetKvs :: k -> KVS k v m (Maybe v)
@@ -14,9 +15,8 @@ data KVS k v m a where
 
 makeSem ''KVS
 
-runKvsOnMapState :: ( Member (State (M.Map k v)) r
-                    , Ord k
-                    ) => Sem ((KVS k v) ': r) a -> Sem r a
+-- | InMemory implementation of key value store
+runKvsOnMapState :: ( Member (State (M.Map k v)) r, Ord k) => Sem ((KVS k v) ': r) a -> Sem r a
 runKvsOnMapState = interpret $ \case
   ListAllKvs    -> fmap M.toList get
   GetKvs k      -> fmap (M.lookup k) get

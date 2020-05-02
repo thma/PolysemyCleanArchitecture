@@ -27,11 +27,11 @@ dependencies:
 - aeson-pretty
 - servant-server
 - servant
-- servant-docs
-- servant-swagger
-- servant-swagger-ui
-- servant-swagger-ui-core
-- swagger2
+#- servant-docs
+#- servant-swagger
+#- servant-swagger-ui
+#- servant-swagger-ui-core
+#- swagger2
 - string-conversions
 - libiserv
 - base-compat-batteries
