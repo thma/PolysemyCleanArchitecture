@@ -36,11 +36,16 @@ runAllEffects kvsIORef program =
     & runM
 
 initReservations :: ReservationMap
-initReservations = M.singleton day res
+initReservations = M.singleton day res -- M.fromList [] --
   where
     day = fromGregorian 2020 5 2
     res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
 
+--runTryReservation :: Reservation -> (IORef ReservationMap) -> IO Bool
+--runTryReservation res kvsIORef = do
+--  runAllEffects kvsIORef (tryReservation res)
+--  return True
+  
 main :: IO (Either ReservationError ())
 main = do
   putStrLn "testing the reservation API without a REST server"
