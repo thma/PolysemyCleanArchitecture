@@ -54,7 +54,7 @@ createApp = do
 
 
 postData :: LB.ByteString
-postData = "{\"email\":\"amjones@example.com\",\"quantity\":18,\"date\":\"2020-01-29\",\"name\":\"Amelia Jones\"}"
+postData = "{\"email\":\"amjones@example.com\",\"quantity\":10,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}"
 
 postJSON path = request methodPost path [(hContentType, "application/json")]
 
@@ -69,7 +69,6 @@ spec =
         get "/reservations" `shouldRespondWith` "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":4,\"date\":\"2020-05-02\",\"name\":\"Andrew M. Jones\"}]}"
       it "reponds with 200 for a valid POST /reservations" $
         postJSON "/reservations" postData `shouldRespondWith` 200
---      it "reponds with 200 for a valid POST /reservations" $
---        postJSON "/reservations" postData `shouldRespondWith` 200
---      it "responds with 200 for a call GET /reservations " $
---        get "/reservations" `shouldRespondWith` "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":4,\"date\":\"2020-05-02\",\"name\":\"Andrew M. Jones\"}]}"      
+      it "reponds with 412 if the reservation can not be done" $
+        (postJSON "/reservations" postData >> postJSON "/reservations" postData) `shouldRespondWith` 412
+     
