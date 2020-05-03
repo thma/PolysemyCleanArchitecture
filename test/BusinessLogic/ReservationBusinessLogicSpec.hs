@@ -26,15 +26,15 @@ spec =
       usedCapacity [reservation1, reservation2] `shouldBe` 7
       
     it "computes the available capacity for a given day" $
-      availableCapacity (Just list) `shouldBe` 13
+      availableCapacity list `shouldBe` 13
       
     it "can check if a reservation is possible on a given day" $ 
-      isReservationPossible (Reservation day "name" "mail@mail.com" 8) (Just list) `shouldBe` True
+      isReservationPossible (Reservation day "name" "mail@mail.com" 8) list `shouldBe` True
 
     it "can check if a reservation is possible on a day with no bookings" $ 
-      isReservationPossible (Reservation day "name" "mail@mail.com" 8) Nothing `shouldBe` True
+      isReservationPossible (Reservation day "name" "mail@mail.com" 8) [] `shouldBe` True
 
     it "detects if a reservation is not possible on a given day" $ 
-      isReservationPossible (Reservation day "name" "mail@mail.com" 15) (Just list) `shouldBe` False
+      isReservationPossible (Reservation day "name" "mail@mail.com" 15) list `shouldBe` False
 
 

@@ -14,6 +14,7 @@ where
 import           Data.Time.Calendar
 import           Data.Time.Clock
 import qualified Data.Map.Strict as M
+import           Data.Maybe (fromMaybe)
 import Polysemy
 import Polysemy.Error
 
@@ -58,15 +59,14 @@ fetch day = do
 tryReservation :: (Member ReservationTable r, Member (Error ReservationError) r, Member Trace r) => Reservation -> Sem r ()
 tryReservation res@(Reservation date _ _ requestedQuantity)  = do
   trace $ "trying to reservate " ++ show requestedQuantity ++ " more seats on " ++ show date
-  reservationsOnDay <- fetch date
+  maybeReservations <- fetch date  
+  let reservationsOnDay = fromMaybe [] maybeReservations
   if isReservationPossible res reservationsOnDay
-    then
-      do addReservation res
-         return ()
+    then addReservation res
     else throw $ ReservationNotPossible ("we are fully booked on " ++ show date)
 
 -- | add a reservation to the reservation table.
-addReservation :: (Member (KVS Day [Reservation]) r, Member Trace r)  => Reservation -> Sem r [Reservation]
+addReservation :: (Member (KVS Day [Reservation]) r, Member Trace r)  => Reservation -> Sem r ()
 addReservation x@(Reservation date _ _ _ ) = do
   trace $ "enter a new reservation to KV store: " ++ show x
   resList <- getKvs date
@@ -74,4 +74,4 @@ addReservation x@(Reservation date _ _ _ ) = do
         Nothing -> [x]
         Just xs -> x:xs
   insertKvs date reserved
-  return reserved
+  return ()
