@@ -84,6 +84,7 @@ tests:
     - QuickCheck
     - hspec-wai
 #    - hspec-wai-json
+    - wai-extra
     default-extensions:
       - DataKinds
       - FlexibleContexts

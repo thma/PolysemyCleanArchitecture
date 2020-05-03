@@ -39,7 +39,7 @@ createApp = do
                 & runM
                 & liftToHandler
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
-    handleErrors (Left (ReservationNotPossible msg)) = Left err409 { errBody = pack msg}
+    handleErrors (Left (ReservationNotPossible msg)) = Left err412 { errBody = pack msg}
     handleErrors (Right value) = Right value
 
 main :: IO ()

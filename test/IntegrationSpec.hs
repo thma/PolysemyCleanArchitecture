@@ -1,10 +1,7 @@
-module Integration.InMemoryKVSSpec where
+module IntegrationSpec where
 
 import           Test.Hspec
 
---import qualified Data.Map as Map
---import           Data.Time.Calendar
---import Control.Monad.Cont (liftIO)
 import           Control.Exception
 import           Control.Monad.Except
 import           Data.Function                      ((&))

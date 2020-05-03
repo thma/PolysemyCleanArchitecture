@@ -1,4 +1,4 @@
-module Domain.ReservationBusinessLogicSpec where
+module DomainSpec where
 
 import           Test.Hspec
 import qualified Data.Map as Map

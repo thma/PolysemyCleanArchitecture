@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Rest.ServiceSpec where
+module RestSpec where
 
 import           Control.Monad.Except
 import           Data.ByteString.Lazy.Char8         (pack)
@@ -22,6 +22,11 @@ import           Servant.Server
 
 import           Test.Hspec
 import           Test.Hspec.Wai
+import qualified Data.ByteString.Lazy as LB
+import           Data.ByteString (ByteString)
+import           Network.Wai.Test hiding (request)
+import Network.HTTP.Types.Method (methodPost)
+import Network.HTTP.Types.Header (hContentType)
 
 
 initReservations :: ReservationMap
@@ -44,15 +49,27 @@ createApp = do
         & runM
         & liftToHandler
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
-    handleErrors (Left (ReservationNotPossible msg)) = Left err409 {errBody = pack msg}
+    handleErrors (Left (ReservationNotPossible msg)) = Left err412 {errBody = pack msg}
     handleErrors (Right value) = Right value
+
+
+postData :: LB.ByteString
+postData = "{\"email\":\"amjones@example.com\",\"quantity\":18,\"date\":\"2020-01-29\",\"name\":\"Amelia Jones\"}"
+
+postJSON path = request methodPost path [(hContentType, "application/json")]
 
 main :: IO ()
 main = hspec spec
 
 spec :: Spec
 spec =
-  with (createApp) $ 
-    describe "GET /reservations" $ 
-      it "responds with 200" $ 
+  with (createApp) $
+    describe "Rest Service" $ do
+      it "responds with 200 for a call GET /reservations " $
         get "/reservations" `shouldRespondWith` "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":4,\"date\":\"2020-05-02\",\"name\":\"Andrew M. Jones\"}]}"
+      it "reponds with 200 for a valid POST /reservations" $
+        postJSON "/reservations" postData `shouldRespondWith` 200
+--      it "reponds with 200 for a valid POST /reservations" $
+--        postJSON "/reservations" postData `shouldRespondWith` 200
+--      it "responds with 200 for a call GET /reservations " $
+--        get "/reservations" `shouldRespondWith` "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":4,\"date\":\"2020-05-02\",\"name\":\"Andrew M. Jones\"}]}"      
