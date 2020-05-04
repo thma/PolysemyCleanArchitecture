@@ -5,6 +5,7 @@ module Main where
 import           Data.IORef
 import           Data.Function ((&))
 import           Integration.KVS
+import           Integration.KVSFileServer (runKvsAsFileServer)
 import qualified Network.Wai.Handler.Warp as W
 import           Polysemy
 import           Polysemy.Error
@@ -32,8 +33,9 @@ createApp = do
   return (serve reservationAPI $ hoistServer reservationAPI (\sem -> interpretServer sem kvsIORef) reservationServer)
   where
     interpretServer sem kvsIORef =  sem
-                & runKvsOnMapState
-                & runStateIORef @(ReservationMap) kvsIORef
+--                & runKvsOnMapState
+--                & runStateIORef @(ReservationMap) kvsIORef
+                & runKvsAsFileServer
                 & runError @ReservationError
                 & traceToIO
                 & runM

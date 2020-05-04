@@ -22,4 +22,3 @@ runKvsOnMapState = interpret $ \case
   GetKvs k      -> fmap (M.lookup k) get
   InsertKvs k v -> modify $ M.insert k v
   DeleteKvs k   -> modify $ M.delete k
-

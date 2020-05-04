@@ -38,6 +38,7 @@ dependencies:
 - polysemy-plugin
 - errors
 - mtl
+- directory
 
 library:
   source-dirs: src
