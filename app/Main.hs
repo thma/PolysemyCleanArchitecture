@@ -1,15 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
 module Main where
 
-import           Data.IORef
 import           Data.Function ((&))
 import           Integration.KVS
 import           Integration.KVSFileServer (runKvsAsFileServer)
 import qualified Network.Wai.Handler.Warp as W
 import           Polysemy
 import           Polysemy.Error
-import           Polysemy.State
 import           Servant.Server
 
 import qualified Data.Map.Strict as M
@@ -29,17 +25,14 @@ initReservations = M.singleton day res
 
 createApp :: IO Application
 createApp = do
-  kvsIORef <- newIORef initReservations
-  return (serve reservationAPI $ hoistServer reservationAPI (\sem -> interpretServer sem kvsIORef) reservationServer)
+  return (serve reservationAPI $ hoistServer reservationAPI interpretServer reservationServer)
   where
-    interpretServer sem kvsIORef =  sem
---                & runKvsOnMapState
---                & runStateIORef @(ReservationMap) kvsIORef
-                & runKvsAsFileServer
-                & runError @ReservationError
-                & traceToIO
-                & runM
-                & liftToHandler
+    interpretServer sem =  sem
+      & runKvsAsFileServer
+      & runError @ReservationError
+      & traceToIO
+      & runM
+      & liftToHandler
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
     handleErrors (Left (ReservationNotPossible msg)) = Left err412 { errBody = pack msg}
     handleErrors (Right value) = Right value

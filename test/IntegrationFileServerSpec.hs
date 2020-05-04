@@ -1,0 +1,89 @@
+module IntegrationFileServerSpec where
+
+import           Test.Hspec
+
+import           Control.Exception
+import           Control.Monad.Except
+import           Data.Function                      ((&))
+--import           Data.IORef
+import qualified Data.Map.Strict                    as M
+import           Data.Time.Calendar
+import           Polysemy
+import           Polysemy.Error
+import           Polysemy.State
+import           Polysemy.Trace                     (Trace, traceToIO, ignoreTrace)
+
+import           Integration.KVS
+import           Integration.ReservationIntegration
+
+import Domain.ReservationBusinessLogic
+import           Integration.KVSFileServer
+
+main :: IO ()
+main = hspec spec
+
+-- Helper functions for interpreting all effects in a testable way
+
+-- | Takes a program with effects and handles each effect till it gets reduced to IO a.
+runAllEffects :: (forall r. Members [ReservationTable, Error ReservationError, Trace] r => Sem r a) -> IO a
+runAllEffects program =
+  program
+    & runKvsAsFileServer
+    & runError @ReservationError
+    & ignoreTrace
+    & runM
+    & handleErrors
+
+-- errors are rethrown as Runtime errors, which can be verified by HSpec.
+handleErrors :: IO (Either ReservationError a) -> IO a
+handleErrors e = do
+  either <- e
+  case either of
+    Right v                           -> return v
+    Left (ReservationNotPossible msg) -> (error msg)
+
+runTryReservation :: Reservation -> IO ()
+runTryReservation res = do
+  runAllEffects (tryReservation res)
+
+runFetch :: Day -> IO (Maybe [Reservation])
+runFetch day = do
+  runAllEffects (fetch day)
+  
+runListAll :: IO ReservationMap
+runListAll = do
+  runAllEffects (listAll)
+  
+
+day = fromGregorian 2020 5 2
+res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
+
+spec :: Spec
+spec =
+  describe "Integration Layer" $ do
+    it "returns Nothing if there are no reservations for a given day" $ do
+      maybeMatch <- runFetch day
+      maybeMatch `shouldBe` Nothing
+ 
+    it "can add a reservation if there are enough free seats" $ do
+      let goodReservation = head res
+      runTryReservation goodReservation
+      map <- runListAll 
+      maybeMatch <- runFetch day
+      case maybeMatch of
+        Nothing -> fail "no reservations found"
+        Just reservations -> (goodReservation `elem` reservations `shouldBe` True)
+      
+    it "fetches a list of reservations from the KV store" $ do
+      --runTryReservation (head res)
+      maybeMatch <- runFetch day
+      maybeMatch `shouldBe` (Just res)
+
+    it "can retrieve a map of all reservations" $ do
+      map <- runListAll 
+      M.size map `shouldBe` 1
+
+    it "throws an erorr if a reservation is not possible" $ do
+      let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17
+      runTryReservation badReservation `shouldThrow` (errorCall $ "we are fully booked on " ++ show day)   
+      

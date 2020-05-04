@@ -1,4 +1,4 @@
-module IntegrationSpec where
+module IntegrationInMemorySpec where
 
 import           Test.Hspec
 

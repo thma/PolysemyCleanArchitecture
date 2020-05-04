@@ -1,5 +1,3 @@
---{-# LANGUAGE ScopedTypeVariables #-}
---{-# LANGUAGE Strict              #-}
 module Integration.KVSFileServer where
 
 import           Control.Exception
@@ -11,13 +9,6 @@ import           Integration.KVS   (KVS (..))
 import           Polysemy
 import           System.Directory  (doesFileExist, listDirectory, removeFile)
 
--- | exeptions that may occur during persistence operations
-data PersistenceException = EntityNotFound String
-    | EntityAlreadyExists String
-    | InternalError String
-    deriving (Show)
-
-instance Exception PersistenceException
 
 -- | File Based implementation of key value store
 runKvsAsFileServer :: (Member (Embed IO) r, Show k, Read k, ToJSON v, FromJSON v) => Sem (KVS k v : r) a -> Sem r a
@@ -71,3 +62,11 @@ decodeFile jsonFileName= do
               Left msg -> throw (InternalError $ "could not parse data: " ++ msg)
               Right e  -> return e
     else throw (EntityNotFound $ "could not find: " ++ jsonFileName)
+
+-- | exeptions that may occur during persistence operations
+data PersistenceException = EntityNotFound String
+    | EntityAlreadyExists String
+    | InternalError String
+    deriving (Show)
+
+instance Exception PersistenceException
