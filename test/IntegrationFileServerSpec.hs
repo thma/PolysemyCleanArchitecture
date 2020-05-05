@@ -5,7 +5,6 @@ import           Test.Hspec
 import           Control.Exception
 import           Control.Monad.Except
 import           Data.Function                      ((&))
---import           Data.IORef
 import qualified Data.Map.Strict                    as M
 import           Data.Time.Calendar
 import           Polysemy

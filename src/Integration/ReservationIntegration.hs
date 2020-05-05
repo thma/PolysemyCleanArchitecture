@@ -23,13 +23,17 @@ import           Integration.KVS                 (KVS, getKvs, insertKvs,
 import           Polysemy.Trace                  (Trace, trace)
 
 {--
-This module implements the integration layer for the Reservation system.
-It coordinates access to Effects and domain logic.
+This module specifies the integration layer for the Reservation system.
+It coordinates access to Effects and the actual domain logic.
 The module exposes service function that will be used by the REST API.
 
 All Effects are specified as Polysemy Members.
 
-Interpretation of Effects is implemented on the level of application assembly.
+Interpretation of Effects is implemented on the level of application assembly, or in the context of unit tests.
+
+Please note: all functions in this module are pure and total functions.
+This makes it easy to test them in isolation.
+
 --}
 
 -- | ReservationTable holds a list of reservations for each date
@@ -44,8 +48,6 @@ listAll :: (Member ReservationTable r, Member Trace r) => Sem r ReservationMap
 listAll = do
   trace "listing all reservation entries"
   fmap M.fromList listAllKvs
-  --trace (show result)
-  --return result
 
 -- | fetch the list of reservations for a given day from the key value store.
 --   If no match is found, Nothings is returned, else the Result wrapped with Just.

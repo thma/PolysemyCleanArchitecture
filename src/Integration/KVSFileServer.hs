@@ -1,8 +1,9 @@
-module Integration.KVSFileServer where
+module Integration.KVSFileServer 
+( runKvsAsFileServer
+) where
 
 import           Control.Exception
-import           Data.Aeson        (FromJSON, ToJSON, decodeFileStrict,
-                                    eitherDecodeFileStrict, encodeFile, toJSON)
+import           Data.Aeson        (FromJSON, ToJSON, decodeFileStrict, eitherDecodeFileStrict, encodeFile, toJSON)
 import           Data.List         (isSuffixOf)
 import qualified Data.Map.Strict   as M
 import           Integration.KVS   (KVS (..))
@@ -59,8 +60,8 @@ decodeFile jsonFileName= do
     then do
       eitherEntity <- eitherDecodeFileStrict jsonFileName
       case eitherEntity of
-              Left msg -> throw (InternalError $ "could not parse data: " ++ msg)
-              Right e  -> return e
+        Left msg -> throw (InternalError $ "could not parse data: " ++ msg)
+        Right e  -> return e
     else throw (EntityNotFound $ "could not find: " ++ jsonFileName)
 
 -- | exeptions that may occur during persistence operations

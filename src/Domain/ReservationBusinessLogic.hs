@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric  #-}
-module Domain.ReservationBusinessLogic 
+module Domain.ReservationBusinessLogic
 ( Reservation (..)
 , availableCapacity
 , usedCapacity
@@ -19,6 +19,10 @@ import qualified Data.Map.Strict as M
 This module implements the business logic for seat reservations in a very small boutique restaurant.
 The restaurant has only one table with 20 tables.
 Each day the restaurants accepts only 20 seat reservations. (There is no limited time-slot for each guest.)
+
+Please note: all functions in this module are pure and total.
+This makes it easy to test them in isolation.
+
 --}
 
 -- | a data type representing a reservation
@@ -31,9 +35,9 @@ data Reservation = Reservation {
 
 -- | the total number of seats in the restaurant
 maxCapacity :: Int
-maxCapacity = 20   
+maxCapacity = 20
 
--- | computes the number of available seats for the 
+-- | computes the number of available seats for the
 availableCapacity :: [Reservation] -> Int
 availableCapacity res  = maxCapacity - usedCapacity res
 
@@ -49,6 +53,3 @@ isReservationPossible res@(Reservation date _ _ requestedQuantity) reservationsO
   let
     availableSeats = availableCapacity reservationsOnDay
   in (availableSeats >= requestedQuantity)
-
-
-    
