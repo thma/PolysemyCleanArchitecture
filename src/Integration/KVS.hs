@@ -22,3 +22,10 @@ runKvsOnMapState = interpret $ \case
   GetKvs k      -> fmap (M.lookup k) get
   InsertKvs k v -> modify $ M.insert k v
   DeleteKvs k   -> modify $ M.delete k
+
+runKvsPure :: Sem ((KVS k v) ': r) a -> Sem r a
+runKvsPure = interpret $ \case
+  ListAllKvs    -> return []
+  GetKvs k      -> return Nothing
+  InsertKvs k v -> return ()
+  DeleteKvs k   -> return ()

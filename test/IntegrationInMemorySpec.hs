@@ -32,9 +32,17 @@ runAllEffects kvsIORef program =
     & runKvsOnMapState
     & runStateIORef @(ReservationMap) kvsIORef
     & runError @ReservationError
-    & ignoreTrace --traceToIO
+    & ignoreTrace
     & runM
     & handleErrors
+
+runPure :: (forall r. Members [ReservationTable, Error ReservationError, Trace] r => Sem r a) -> [(Either ReservationError a)]
+runPure program = 
+  program
+     & runKvsPure
+     & runError @ReservationError
+     & ignoreTrace
+     & runM
 
 -- errors are rethrown as Runtime errors, which can be verified by HSpec.
 handleErrors :: IO (Either ReservationError a) -> IO a
@@ -55,6 +63,10 @@ runFetch kvsIORef day = do
 runListAll :: (IORef ReservationMap) -> IO ReservationMap
 runListAll kvsIORef = do
   runAllEffects kvsIORef (listAll)
+  
+runPureFetch :: Day -> [Either ReservationError (Maybe [Reservation])]
+runPureFetch day = do
+  runPure (fetch day)  
 
 -- function for setting up test fixtures
 initReservations :: ReservationMap
@@ -91,3 +103,8 @@ spec =
       kvsIORef <- newIORef $ initReservations
       let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17
       runTryReservation kvsIORef badReservation `shouldThrow` (errorCall $ "we are fully booked on " ++ show day)   
+      
+    it "should fetch an empty list when using the pure KVS implementation" $ do
+      let [res] = runPureFetch day
+      res `shouldBe` Right Nothing -- :: Either ReservationError (Maybe [Reservation]))
+      --res `shouldBe` Right Nothing

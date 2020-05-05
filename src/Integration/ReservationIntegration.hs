@@ -39,7 +39,7 @@ This makes it easy to test them in isolation.
 -- | ReservationTable holds a list of reservations for each date
 type ReservationTable = KVS Day [Reservation]
 
-newtype ReservationError = ReservationNotPossible String
+newtype ReservationError = ReservationNotPossible String deriving (Show, Eq)
 
 type ReservationMap = M.Map Day [Reservation]
 
