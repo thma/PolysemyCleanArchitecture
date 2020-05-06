@@ -21,7 +21,7 @@ import Domain.ReservationBusinessLogic
 main :: IO ()
 main = hspec spec
 
--- | Takes a program with effects and handles each effect till it gets reduced to [Either ReservationError (ReservationMap, a)].
+-- | Takes a program with effects and handles each effect till it gets reduced to [Either ReservationError (ReservationMap, a)]. No IO !
 runPure :: ReservationMap 
         -> (forall r. Members [ReservationTable, Error ReservationError, Trace] r => Sem r a)  
         -> [Either ReservationError (ReservationMap, a)]
@@ -51,7 +51,7 @@ runListAll kvsMap = do
     [Right (_, m)] -> m
     [Left err]     -> error "listALl failed" 
   
--- function for setting up test fixtures
+-- setting up test fixtures
 initReservations :: ReservationMap
 initReservations = M.singleton day res
 

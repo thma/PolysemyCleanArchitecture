@@ -4,7 +4,7 @@ module Integration.ReservationIntegration
 , tryReservation
 , ReservationTable (..)
 , ReservationError (..)
-, Reservation (..)
+, D.Reservation (..)
 , ReservationMap (..)
 )
 where
@@ -16,8 +16,7 @@ import           Data.Time.Clock
 import           Polysemy
 import           Polysemy.Error
 
-import           Domain.ReservationBusinessLogic (Reservation (..),
-                                                  isReservationPossible)
+import qualified Domain.ReservationBusinessLogic as D (Reservation (..), isReservationPossible) 
 import           Integration.KVS                 (KVS, getKvs, insertKvs,
                                                   listAllKvs)
 import           Polysemy.Trace                  (Trace, trace)
@@ -37,11 +36,11 @@ This makes it easy to test them in isolation.
 --}
 
 -- | ReservationTable holds a list of reservations for each date
-type ReservationTable = KVS Day [Reservation]
+type ReservationTable = KVS Day [D.Reservation]
 
 newtype ReservationError = ReservationNotPossible String deriving (Show, Eq)
 
-type ReservationMap = M.Map Day [Reservation]
+type ReservationMap = M.Map Day [D.Reservation]
 
 -- | list all entries from the key value store and return them as a ReservationMap
 listAll :: (Member ReservationTable r, Member Trace r) => Sem r ReservationMap
@@ -51,25 +50,25 @@ listAll = do
 
 -- | fetch the list of reservations for a given day from the key value store.
 --   If no match is found, Nothings is returned, else the Result wrapped with Just.
-fetch :: (Member ReservationTable r, Member Trace r) => Day -> Sem r (Maybe [Reservation])
+fetch :: (Member ReservationTable r, Member Trace r) => Day -> Sem r (Maybe [D.Reservation])
 fetch day = do
   trace $ "fetch reservations for " ++ show day
   getKvs day
 
 -- | try to add a reservation to the table.
 -- | Return Just the modified table if successful, else return Nothing
-tryReservation :: (Member ReservationTable r, Member (Error ReservationError) r, Member Trace r) => Reservation -> Sem r ()
-tryReservation res@(Reservation date _ _ requestedQuantity)  = do
+tryReservation :: (Member ReservationTable r, Member (Error ReservationError) r, Member Trace r) => D.Reservation -> Sem r ()
+tryReservation res@(D.Reservation date _ _ requestedQuantity)  = do
   trace $ "trying to reservate " ++ show requestedQuantity ++ " more seats on " ++ show date
   maybeReservations <- fetch date
   let reservationsOnDay = fromMaybe [] maybeReservations
-  if isReservationPossible res reservationsOnDay
+  if D.isReservationPossible res reservationsOnDay
     then addReservation res
     else throw $ ReservationNotPossible ("we are fully booked on " ++ show date)
 
 -- | add a reservation to the reservation table.
-addReservation :: (Member (KVS Day [Reservation]) r, Member Trace r)  => Reservation -> Sem r ()
-addReservation x@(Reservation date _ _ _ ) = do
+addReservation :: (Member (KVS Day [D.Reservation]) r, Member Trace r)  => D.Reservation -> Sem r ()
+addReservation x@(D.Reservation date _ _ _ ) = do
   trace $ "enter a new reservation to KV store: " ++ show x
   resList <- getKvs date
   let reserved = 
