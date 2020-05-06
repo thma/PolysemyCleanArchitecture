@@ -21,56 +21,39 @@ import Domain.ReservationBusinessLogic
 main :: IO ()
 main = hspec spec
 
--- Helper functions for interpreting all effects in a testable way
-
--- | Takes a program with effects and handles each effect till it gets reduced to IO a.
-runAllEffects :: IORef ReservationMap
-              -> (forall r. Members [ReservationTable, Error ReservationError, Trace] r => Sem r a)
-              -> IO a
-runAllEffects kvsIORef program =
+-- | Takes a program with effects and handles each effect till it gets reduced to [Either ReservationError (ReservationMap, a)].
+runPure :: ReservationMap 
+        -> (forall r. Members [ReservationTable, Error ReservationError, Trace] r => Sem r a)  
+        -> [Either ReservationError (ReservationMap, a)]
+runPure kvsMap program = 
   program
-    & runKvsOnMapState
-    & runStateIORef @(ReservationMap) kvsIORef
-    & runError @ReservationError
-    & ignoreTrace
-    & runM
-    & handleErrors
-
-runPure :: (forall r. Members [ReservationTable, Error ReservationError, Trace] r => Sem r a) -> [(Either ReservationError a)]
-runPure program = 
-  program
-     & runKvsPure
+     & runKvsPure kvsMap
      & runError @ReservationError
      & ignoreTrace
      & runM
 
--- errors are rethrown as Runtime errors, which can be verified by HSpec.
-handleErrors :: IO (Either ReservationError a) -> IO a
-handleErrors e = do
-  either <- e
-  case either of
-    Right v                           -> return v
-    Left (ReservationNotPossible msg) -> (error msg)
+-- Helper functions for interpreting all effects in a pure way. That is no IO !
+runTryReservation :: ReservationMap -> Reservation -> Maybe ReservationMap
+runTryReservation kvsMap res = do
+  case runPure kvsMap (tryReservation res) of
+    [Right (m, ())] -> Just m
+    [Left err]      -> Nothing
 
-runTryReservation :: (IORef ReservationMap) -> Reservation -> IO ()
-runTryReservation kvsIORef res = do
-  runAllEffects kvsIORef (tryReservation res)
-
-runFetch :: (IORef ReservationMap) -> Day -> IO (Maybe [Reservation])
-runFetch kvsIORef day = do
-  runAllEffects kvsIORef (fetch day)
+runFetch :: ReservationMap -> Day -> Maybe [Reservation]
+runFetch kvsMap day = do
+  case runPure kvsMap (fetch day) of
+    [Right (_, maybe)] -> maybe
+    [Left err]         -> error "fetch failed"
   
-runListAll :: (IORef ReservationMap) -> IO ReservationMap
-runListAll kvsIORef = do
-  runAllEffects kvsIORef (listAll)
+runListAll :: ReservationMap -> ReservationMap
+runListAll kvsMap = do
+  case runPure kvsMap (listAll) of
+    [Right (_, m)] -> m
+    [Left err]     -> error "listALl failed" 
   
-runPureFetch :: Day -> [Either ReservationError (Maybe [Reservation])]
-runPureFetch day = do
-  runPure (fetch day)  
-
 -- function for setting up test fixtures
 initReservations :: ReservationMap
-initReservations = M.singleton day res -- M.fromList [] --
+initReservations = M.singleton day res
 
 day = fromGregorian 2020 5 2
 res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
@@ -79,32 +62,27 @@ spec :: Spec
 spec =
   describe "Integration Layer" $ do
     it "fetches a list of reservations from the KV store" $ do
-      kvsIORef <- newIORef $ initReservations
-      maybeMatch <- runFetch kvsIORef day
-      maybeMatch `shouldBe` (Just res)
+      (runFetch initReservations day) `shouldBe` (Just res)
+      
     it "returns Nothing if there are no reservations for a given day" $ do
-      kvsIORef <- newIORef $ M.fromList []
-      maybeMatch <- runFetch kvsIORef day
-      maybeMatch `shouldBe` Nothing
+      let kvsMap = M.fromList []
+      (runFetch kvsMap day) `shouldBe` Nothing
+      
     it "can retrieve a map of all reservations" $ do
-      kvsIORef <- newIORef $ initReservations
-      map <- runListAll kvsIORef
-      M.size map `shouldBe` 1
+      let m = runListAll initReservations
+      M.size m `shouldBe` 1
+      
     it "can add a reservation if there are enough free seats" $ do
-      kvsIORef <- newIORef $ initReservations
       let goodReservation = Reservation day "Gabriella. Miller" "gm@example.com" 4
-      runTryReservation kvsIORef goodReservation
-      map <- runListAll kvsIORef
-      maybeMatch <- runFetch kvsIORef day
+      let m = runTryReservation initReservations goodReservation
+          maybeMatch = case m of
+            Just map -> runFetch map day
+            Nothing  -> Nothing
       case maybeMatch of
         Nothing -> fail "no reservations found"
         Just reservations -> (goodReservation `elem` reservations `shouldBe` True)
-    it "throws an erorr if a reservation is not possible" $ do
-      kvsIORef <- newIORef $ initReservations
+
+    it "reports an erorr if a reservation is not possible" $ do
       let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17
-      runTryReservation kvsIORef badReservation `shouldThrow` (errorCall $ "we are fully booked on " ++ show day)   
+      (runTryReservation initReservations badReservation) `shouldBe` Nothing   
       
-    it "should fetch an empty list when using the pure KVS implementation" $ do
-      let [res] = runPureFetch day
-      res `shouldBe` Right Nothing -- :: Either ReservationError (Maybe [Reservation]))
-      --res `shouldBe` Right Nothing

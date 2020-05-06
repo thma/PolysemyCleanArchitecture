@@ -1,5 +1,14 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Integration.KVS where
+module Integration.KVS 
+  ( KVS (..)
+  , listAllKvs
+  , getKvs
+  , insertKvs
+  , deleteKvs
+  , runKvsOnMapState
+  , runKvsPure
+  )
+where
 
 import Control.Monad
 import Polysemy
@@ -16,16 +25,17 @@ data KVS k v m a where
 makeSem ''KVS
 
 -- | InMemory implementation of key value store
-runKvsOnMapState :: ( Member (State (M.Map k v)) r, Ord k) => Sem ((KVS k v) ': r) a -> Sem r a
+runKvsOnMapState :: ( Member (State (M.Map k v)) r, Ord k) 
+                 => Sem (KVS k v : r) a 
+                 -> Sem r a
 runKvsOnMapState = interpret $ \case
   ListAllKvs    -> fmap M.toList get
   GetKvs k      -> fmap (M.lookup k) get
   InsertKvs k v -> modify $ M.insert k v
   DeleteKvs k   -> modify $ M.delete k
 
-runKvsPure :: Sem ((KVS k v) ': r) a -> Sem r a
-runKvsPure = interpret $ \case
-  ListAllKvs    -> return []
-  GetKvs k      -> return Nothing
-  InsertKvs k v -> return ()
-  DeleteKvs k   -> return ()
+runKvsPure :: Ord k 
+           => M.Map k v
+           -> Sem (KVS k v : State (M.Map k v) : r) a 
+           -> Sem r (M.Map k v, a)
+runKvsPure map = runState map . runKvsOnMapState

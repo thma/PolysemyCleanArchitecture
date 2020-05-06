@@ -11,6 +11,8 @@ import           Polysemy
 import           Polysemy.Error
 import           Polysemy.State
 import           Polysemy.Trace                     (Trace, traceToIO, ignoreTrace)
+import           System.Directory  (doesFileExist, listDirectory, removeFile)
+
 
 import           Integration.KVS
 import           Integration.ReservationIntegration
@@ -21,9 +23,7 @@ import           Integration.KVSFileServer
 main :: IO ()
 main = hspec spec
 
--- Helper functions for interpreting all effects in a testable way
-
--- | Takes a program with effects and handles each effect till it gets reduced to IO a.
+-- -- | Takes a program with effects and handles each effect till it gets reduced to IO a.
 runAllEffects :: (forall r. Members [ReservationTable, Error ReservationError, Trace] r => Sem r a) -> IO a
 runAllEffects program =
   program
@@ -41,6 +41,7 @@ handleErrors e = do
     Right v                           -> return v
     Left (ReservationNotPossible msg) -> (error msg)
 
+-- Helper functions for interpreting all effects in IO
 runTryReservation :: Reservation -> IO ()
 runTryReservation res = do
   runAllEffects (tryReservation res)
@@ -53,6 +54,11 @@ runListAll :: IO ReservationMap
 runListAll = do
   runAllEffects (listAll)
   
+deleteAllFiles :: IO [()]
+deleteAllFiles = do
+  allFiles <- listDirectory dataDir
+  mapM removeFile (map (\f -> dataDir ++ f) allFiles)
+  
 
 day = fromGregorian 2020 5 2
 res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
@@ -60,6 +66,9 @@ res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
 spec :: Spec
 spec =
   describe "Integration Layer" $ do
+    it "needs a file cleaning for repeatable tests in the file system..." $ do
+      result <- deleteAllFiles
+      result  `shouldBe` [()]
     it "returns Nothing if there are no reservations for a given day" $ do
       maybeMatch <- runFetch day
       maybeMatch `shouldBe` Nothing
@@ -74,7 +83,6 @@ spec =
         Just reservations -> (goodReservation `elem` reservations `shouldBe` True)
       
     it "fetches a list of reservations from the KV store" $ do
-      --runTryReservation (head res)
       maybeMatch <- runFetch day
       maybeMatch `shouldBe` (Just res)
 

@@ -1,6 +1,8 @@
 module Integration.KVSFileServer 
-( runKvsAsFileServer
-) where
+  ( runKvsAsFileServer
+  , dataDir
+  ) 
+where
 
 import           Control.Exception
 import           Data.Aeson        (FromJSON, ToJSON, decodeFileStrict, eitherDecodeFileStrict, encodeFile, toJSON)
