@@ -16,7 +16,7 @@ import           Polysemy.Trace                     (Trace, traceToIO, ignoreTra
 import           Effects.KVS
 import           Integration.ReservationIntegration
 
-import Domain.ReservationBusinessLogic
+import Domain.ReservationDomain
 import Polysemy.Input (Input, runInputConst)
 import Integration.Config
 
@@ -24,10 +24,10 @@ main :: IO ()
 main = hspec spec
 
 -- | Takes a program with effects and handles each effect till it gets reduced to [Either ReservationError (ReservationMap, a)]. No IO !
-runPure :: ReservationMap 
-        -> (forall r. Members [ReservationTable, Error ReservationError, Trace, Input Config] r => Sem r a)  
+runPure :: ReservationMap
+        -> (forall r. Members [ReservationTable, Error ReservationError, Trace, Input Config] r => Sem r a)
         -> [Either ReservationError (ReservationMap, a)]
-runPure kvsMap program = 
+runPure kvsMap program =
   program
      & runKvsPure kvsMap
      & runInputConst config
@@ -54,8 +54,8 @@ runListAll :: ReservationMap -> ReservationMap
 runListAll kvsMap = do
   case runPure kvsMap (listAll) of
     [Right (_, m)] -> m
-    [Left err]     -> error "listALl failed" 
-  
+    [Left err]     -> error "listALl failed"
+
 -- setting up test fixtures
 initReservations :: ReservationMap
 initReservations = M.singleton day res
@@ -68,15 +68,15 @@ spec =
   describe "Integration Layer" $ do
     it "fetches a list of reservations from the KV store" $ do
       (runFetch initReservations day) `shouldBe` (Just res)
-      
+
     it "returns Nothing if there are no reservations for a given day" $ do
       let kvsMap = M.fromList []
       (runFetch kvsMap day) `shouldBe` Nothing
-      
+
     it "can retrieve a map of all reservations" $ do
       let m = runListAll initReservations
       M.size m `shouldBe` 1
-      
+
     it "can add a reservation if there are enough free seats" $ do
       let goodReservation = Reservation day "Gabriella. Miller" "gm@example.com" 4
       let m = runTryReservation initReservations goodReservation
@@ -89,5 +89,4 @@ spec =
 
     it "reports an erorr if a reservation is not possible" $ do
       let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17
-      (runTryReservation initReservations badReservation) `shouldBe` Nothing   
-      
+      (runTryReservation initReservations badReservation) `shouldBe` Nothing

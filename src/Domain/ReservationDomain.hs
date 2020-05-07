@@ -1,9 +1,8 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric  #-}
-module Domain.ReservationBusinessLogic
+module Domain.ReservationDomain
 ( Reservation (..)
 , ReservationMap (..)
-, availableCapacity
 , usedCapacity
 , isReservationPossible
 , addReservation
@@ -24,7 +23,6 @@ Each day the restaurants accepts only 20 seat reservations. (There is no limited
 
 Please note: all functions in this module are pure and total.
 This makes it easy to test them in isolation.
-
 --}
 
 -- | a data type representing a reservation
@@ -35,29 +33,22 @@ data Reservation = Reservation {
    , quantity :: Int      -- ^ how many seats are requested
 } deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 
+-- | a key value map holding a list of reservations for any given day
 type ReservationMap = M.Map Day [Reservation]
-
--- | the total number of seats in the restaurant
---maxCapacity :: Int
---maxCapacity = 20
-
--- | check whether it is possible to add a reservation to the table.
--- | Return True if successful, else return False
-isReservationPossible :: Reservation -> [Reservation] -> Int -> Bool
-isReservationPossible res@(Reservation date _ _ requestedQuantity) reservationsOnDay maxCapacity =
-  let
-    availableSeats = availableCapacity reservationsOnDay maxCapacity
-  in (availableSeats >= requestedQuantity)
-
--- | add a reservation to
-addReservation :: Reservation -> [Reservation] -> [Reservation]
-addReservation r rs = r:rs
-
--- | computes the number of available seats for the
-availableCapacity :: [Reservation] -> Int -> Int
-availableCapacity res maxCapacity = maxCapacity - usedCapacity res
 
 -- | computes the number of reserved seats for a list of reservations
 usedCapacity :: [Reservation] -> Int
 usedCapacity [] = 0
 usedCapacity (Reservation _ _ _ quantity : rest) = quantity + usedCapacity rest
+
+-- | check whether it is possible to add a reservation to the table.
+-- | Return True if successful, else return False
+isReservationPossible :: Reservation -> [Reservation] -> Int -> Bool
+isReservationPossible res@(Reservation date _ _ requestedSeats) reservationsOnDay maxCapacity =
+  availableSeats >= requestedSeats
+  where
+    availableSeats = maxCapacity - usedCapacity reservationsOnDay
+
+-- | add a reservation to
+addReservation :: Reservation -> [Reservation] -> [Reservation]
+addReservation r rs = r:rs

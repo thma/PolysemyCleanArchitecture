@@ -18,7 +18,7 @@ import           Polysemy.Error
 import           Polysemy.Trace              (Trace, trace)
 import           Polysemy.Input              (Input, input)
 
-import qualified Domain.ReservationBusinessLogic as Dom (Reservation (..), ReservationMap (..), isReservationPossible, addReservation)
+import qualified Domain.ReservationDomain as Dom (Reservation (..), ReservationMap (..), isReservationPossible, addReservation)
 import           Effects.KVS                 (KVS, getKvs, insertKvs, listAllKvs)
 import           Integration.Config
 
@@ -64,7 +64,7 @@ tryReservation r@(Dom.Reservation date _ _ requestedQuantity)  = do
   let rs = fromMaybe [] maybeReservations
   if Dom.isReservationPossible r rs capacity
     then persistReservation r
-    else throw $ ReservationNotPossible ("we are fully booked on " ++ show date)
+    else throw $ ReservationNotPossible ("Sorry, we are fully booked on " ++ show date)
 
 -- | persist a reservation to the reservation table.
 persistReservation :: (Member (KVS Day [Dom.Reservation]) r, Member Trace r)  => Dom.Reservation -> Sem r ()

@@ -18,7 +18,7 @@ import           Effects.KVS
 import           Integration.ReservationIntegration
 import           Integration.Config
 
-import Domain.ReservationBusinessLogic
+import Domain.ReservationDomain
 import           Effects.KVSFileServer
 import Polysemy.Input (Input, runInputConst)
 
@@ -57,7 +57,7 @@ runFetch day = do
 runListAll :: IO ReservationMap
 runListAll = do
   runAllEffects (listAll)
-  
+
 deleteAllFiles :: IO [()]
 deleteAllFiles = do
   allFiles <- listDirectory dataDir
@@ -96,5 +96,5 @@ spec =
 
     it "throws an erorr if a reservation is not possible" $ do
       let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17
-      runTryReservation badReservation `shouldThrow` (errorCall $ "we are fully booked on " ++ show day)   
+      runTryReservation badReservation `shouldThrow` (errorCall $ "Sorry, we are fully booked on " ++ show day)   
       

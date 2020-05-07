@@ -13,7 +13,7 @@ import           Polysemy
 import           Polysemy.Error
 
 import qualified Integration.ReservationIntegration as Int
-import qualified Domain.ReservationBusinessLogic    as Dom
+import qualified Domain.ReservationDomain           as Dom
 import Polysemy.Trace (Trace)
 import Polysemy.Input (Input)
 import Integration.Config (Config)
