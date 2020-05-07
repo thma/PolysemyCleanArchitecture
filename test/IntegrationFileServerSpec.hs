@@ -14,11 +14,11 @@ import           Polysemy.Trace                     (Trace, traceToIO, ignoreTra
 import           System.Directory  (doesFileExist, listDirectory, removeFile)
 
 
-import           Integration.KVS
+import           Effects.KVS
 import           Integration.ReservationIntegration
 
 import Domain.ReservationBusinessLogic
-import           Integration.KVSFileServer
+import           Effects.KVSFileServer
 
 main :: IO ()
 main = hspec spec

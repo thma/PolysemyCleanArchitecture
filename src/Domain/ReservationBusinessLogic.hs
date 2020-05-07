@@ -5,6 +5,7 @@ module Domain.ReservationBusinessLogic
 , availableCapacity
 , usedCapacity
 , isReservationPossible
+, addReservation
 )
 
 where
@@ -37,6 +38,18 @@ data Reservation = Reservation {
 maxCapacity :: Int
 maxCapacity = 20
 
+-- | check whether it is possible to add a reservation to the table.
+-- | Return True if successful, else return False
+isReservationPossible :: Reservation -> [Reservation] -> Bool
+isReservationPossible res@(Reservation date _ _ requestedQuantity) reservationsOnDay =
+  let
+    availableSeats = availableCapacity reservationsOnDay
+  in (availableSeats >= requestedQuantity)
+
+-- | add a reservation to
+addReservation :: Reservation -> [Reservation] -> [Reservation]
+addReservation r rs = r:rs
+
 -- | computes the number of available seats for the
 availableCapacity :: [Reservation] -> Int
 availableCapacity res  = maxCapacity - usedCapacity res
@@ -45,11 +58,3 @@ availableCapacity res  = maxCapacity - usedCapacity res
 usedCapacity :: [Reservation] -> Int
 usedCapacity [] = 0
 usedCapacity (Reservation _ _ _ quantity : rest) = quantity + usedCapacity rest
-
--- | check whether it is possible to add a reservation to the table.
--- | Return True if successful, else return False
-isReservationPossible :: Reservation -> [Reservation] -> Bool
-isReservationPossible res@(Reservation date _ _ requestedQuantity) reservationsOnDay =
-  let
-    availableSeats = availableCapacity reservationsOnDay
-  in (availableSeats >= requestedQuantity)

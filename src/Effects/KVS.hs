@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Integration.KVS 
+module Effects.KVS 
   ( KVS (..)
   , listAllKvs
   , getKvs

@@ -16,9 +16,8 @@ import           Data.Time.Clock
 import           Polysemy
 import           Polysemy.Error
 
-import qualified Domain.ReservationBusinessLogic as D (Reservation (..), isReservationPossible) 
-import           Integration.KVS                 (KVS, getKvs, insertKvs,
-                                                  listAllKvs)
+import qualified Domain.ReservationBusinessLogic as D (Reservation (..), isReservationPossible, addReservation)
+import           Effects.KVS                 (KVS, getKvs, insertKvs, listAllKvs)
 import           Polysemy.Trace                  (Trace, trace)
 
 {--
@@ -63,17 +62,13 @@ tryReservation res@(D.Reservation date _ _ requestedQuantity)  = do
   maybeReservations <- fetch date
   let reservationsOnDay = fromMaybe [] maybeReservations
   if D.isReservationPossible res reservationsOnDay
-    then addReservation res
+    then persistReservation res
     else throw $ ReservationNotPossible ("we are fully booked on " ++ show date)
 
--- | add a reservation to the reservation table.
-addReservation :: (Member (KVS Day [D.Reservation]) r, Member Trace r)  => D.Reservation -> Sem r ()
-addReservation x@(D.Reservation date _ _ _ ) = do
-  trace $ "enter a new reservation to KV store: " ++ show x
-  resList <- getKvs date
-  let reserved = 
-        case resList of
-          Nothing -> [x]
-          Just xs -> x:xs
-  insertKvs date reserved
-  return ()
+-- | persist a reservation to the reservation table.
+persistReservation :: (Member (KVS Day [D.Reservation]) r, Member Trace r)  => D.Reservation -> Sem r ()
+persistReservation r@(D.Reservation date _ _ _ ) = do
+  trace $ "enter a new reservation to KV store: " ++ show r
+  maybeResList <- getKvs date
+  let rs = fromMaybe [] maybeResList
+  insertKvs date (D.addReservation r rs)

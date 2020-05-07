@@ -10,7 +10,7 @@ import           Data.Function                      ((&))
 import           Data.IORef
 import qualified Data.Map.Strict                    as M
 import           Data.Time.Calendar
-import           Integration.KVS
+import           Effects.KVS
 import           Integration.ReservationIntegration
 import qualified Network.Wai.Handler.Warp           as W
 import           Polysemy

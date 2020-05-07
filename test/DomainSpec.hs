@@ -21,10 +21,10 @@ spec =
   describe "Domain Logic" $ do
     it "computes the used capacity for an empty list of reservations" $
       usedCapacity [] `shouldBe` 0
-      
+
     it "computes the used capacity for a list of reservations" $
       usedCapacity [reservation1, reservation2] `shouldBe` 7
-      
+
     it "computes the available capacity for a given day" $
       availableCapacity list `shouldBe` 13
       
@@ -36,5 +36,9 @@ spec =
 
     it "detects if a reservation is not possible on a given day" $ 
       isReservationPossible (Reservation day "name" "mail@mail.com" 15) list `shouldBe` False
+      
+    it "can add a reservation to a list of reservations" $ do
+      addReservation reservation1 [] `shouldBe` [reservation1] 
+      addReservation reservation1 list `shouldBe` reservation1:list
 
 

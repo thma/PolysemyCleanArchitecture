@@ -1,4 +1,4 @@
-module Integration.KVSFileServer 
+module Effects.KVSFileServer 
   ( runKvsAsFileServer
   , dataDir
   ) 
@@ -8,7 +8,7 @@ import           Control.Exception
 import           Data.Aeson        (FromJSON, ToJSON, decodeFileStrict, eitherDecodeFileStrict, encodeFile, toJSON)
 import           Data.List         (isSuffixOf)
 import qualified Data.Map.Strict   as M
-import           Integration.KVS   (KVS (..))
+import           Effects.KVS   (KVS (..))
 import           Polysemy
 import           System.Directory  (doesFileExist, listDirectory, removeFile)
 
