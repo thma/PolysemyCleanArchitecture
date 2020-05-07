@@ -23,9 +23,9 @@ import           UseCases.KVS               (KVS, getKvs, insertKvs, listAllKvs)
 import           UseCases.Config
 
 {--
-This module specifies the integration layer for the Reservation system.
+This module specifies the Use Case layer for the Reservation system.
 It coordinates access to Effects and the actual domain logic.
-The module exposes service function that will be used by the REST API.
+The module exposes service functions that will be used by the REST API.
 
 All Effects are specified as Polysemy Members.
 
