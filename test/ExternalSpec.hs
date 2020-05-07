@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module RestSpec where
+module ExternalSpec where
 
 import           Control.Monad.Except
 import           Data.ByteString.Lazy.Char8         (pack)
@@ -11,13 +11,13 @@ import           Data.IORef
 import qualified Data.Map.Strict                    as M
 import           Data.Time.Calendar
 import           InterfacesAdapters.KVSInMemory
-import           UseCases.ReservationIntegration
+import           UseCases.ReservationUseCase
 import           UseCases.Config
 import qualified Network.Wai.Handler.Warp           as W
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.State                     hiding (get)
-import           Polysemy.Trace                     (traceToIO)
+import           Polysemy.Trace                     (traceToIO, ignoreTrace)
 import           External.ReservationRestService
 import           Servant.Server
 
@@ -48,7 +48,7 @@ createApp = do
         & runStateIORef @(ReservationMap) kvsIORef
         & runInputConst config
         & runError @ReservationError
-        & traceToIO
+        & ignoreTrace
         & runM
         & liftToHandler
     liftToHandler = Handler . ExceptT . (fmap handleErrors)

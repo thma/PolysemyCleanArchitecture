@@ -1,4 +1,4 @@
-module UseCases.ReservationIntegration
+module UseCases.ReservationUseCase
 ( listAll
 , fetch
 , tryReservation

@@ -12,8 +12,8 @@ import           Data.ByteString.Lazy.Char8 (pack)
 import           Polysemy
 import           Polysemy.Error
 
-import qualified UseCases.ReservationIntegration as Int
-import qualified Domain.ReservationDomain        as Dom
+import qualified UseCases.ReservationUseCase as Int (ReservationTable, ReservationError, listAll, tryReservation)
+import qualified Domain.ReservationDomain    as Dom (Reservation, ReservationMap)
 import Polysemy.Trace (Trace)
 import Polysemy.Input (Input)
 import UseCases.Config (Config)

@@ -1,4 +1,4 @@
-module IntegrationFileServerSpec where
+module UseCaseIOSpec where
 
 import           Test.Hspec
 
@@ -13,9 +13,7 @@ import           Polysemy.State
 import           Polysemy.Trace                     (Trace, traceToIO, ignoreTrace)
 import           System.Directory  (doesFileExist, listDirectory, removeFile)
 
-
---import           InterfacesAdapters.KVSInMemory
-import           UseCases.ReservationIntegration
+import           UseCases.ReservationUseCase
 import           UseCases.Config
 
 import Domain.ReservationDomain
@@ -69,7 +67,7 @@ res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
 
 spec :: Spec
 spec =
-  describe "Integration Layer" $ do
+  describe "Reservation Use Case (with file IO)" $ do
     it "needs a file cleaning for repeatable tests in the file system..." $ do
       result <- deleteAllFiles
       result  `shouldBe` [()]
@@ -94,7 +92,7 @@ spec =
       map <- runListAll 
       M.size map `shouldBe` 1
 
-    it "throws an erorr if a reservation is not possible" $ do
+    it "throws an error if a reservation is not possible" $ do
       let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17
       runTryReservation badReservation `shouldThrow` (errorCall $ "Sorry, we are fully booked on " ++ show day)
       

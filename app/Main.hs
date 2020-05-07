@@ -13,7 +13,7 @@ import           Data.Time.Calendar
 import           Data.ByteString.Lazy.Char8 (pack)
 
 import           External.ReservationRestService
-import           UseCases.ReservationIntegration
+import           UseCases.ReservationUseCase
 import           UseCases.Config
 import Polysemy.Trace (traceToIO)
 import Polysemy.Input (runInputConst)

@@ -1,4 +1,4 @@
-module IntegrationInMemorySpec where
+module UseCasePureSpec where
 
 import           Test.Hspec
 
@@ -14,7 +14,7 @@ import           Polysemy.State
 import           Polysemy.Trace                     (Trace, traceToIO, ignoreTrace)
 
 import           InterfacesAdapters.KVSInMemory
-import           UseCases.ReservationIntegration
+import           UseCases.ReservationUseCase
 
 import           Domain.ReservationDomain
 import           Polysemy.Input (Input, runInputConst)
@@ -65,7 +65,7 @@ res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
 
 spec :: Spec
 spec =
-  describe "Integration Layer" $ do
+  describe "Reservation Use Case (only pure code)" $ do
     it "fetches a list of reservations from the KV store" $ do
       (runFetch initReservations day) `shouldBe` (Just res)
 
@@ -87,6 +87,6 @@ spec =
         Nothing -> fail "no reservations found"
         Just reservations -> (goodReservation `elem` reservations `shouldBe` True)
 
-    it "reports an erorr if a reservation is not possible" $ do
+    it "reports an error if a reservation is not possible" $ do
       let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17
       (runTryReservation initReservations badReservation) `shouldBe` Nothing
