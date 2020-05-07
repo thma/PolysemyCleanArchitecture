@@ -13,9 +13,9 @@ import           Control.Monad.Except
 import           Data.Time.Calendar
 import           Data.ByteString.Lazy.Char8 (pack)
 
-import           Rest.ReservationService
-import           Integration.ReservationIntegration
-import           Integration.Config
+import           External.ReservationRestService
+import           UseCases.ReservationIntegration
+import           UseCases.Config
 import Polysemy.Trace (traceToIO)
 import Polysemy.Input (runInputConst)
 
@@ -26,7 +26,7 @@ initReservations = M.singleton day res
     res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
 
 createApp :: Config -> IO Application
-createApp config = do  
+createApp config = do
   return (serve reservationAPI $ hoistServer reservationAPI (interpretServer config) reservationServer)
   where
     interpretServer config sem  =  sem

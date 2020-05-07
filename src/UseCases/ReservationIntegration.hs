@@ -1,4 +1,4 @@
-module Integration.ReservationIntegration
+module UseCases.ReservationIntegration
 ( listAll
 , fetch
 , tryReservation
@@ -20,7 +20,7 @@ import           Polysemy.Input              (Input, input)
 
 import qualified Domain.ReservationDomain as Dom (Reservation (..), ReservationMap (..), isReservationPossible, addReservation)
 import           Effects.KVS                 (KVS, getKvs, insertKvs, listAllKvs)
-import           Integration.Config
+import           UseCases.Config
 
 {--
 This module specifies the integration layer for the Reservation system.
@@ -56,14 +56,14 @@ fetch day = do
 -- | try to add a reservation to the table.
 -- | Return Just the modified table if successful, else return Nothing
 tryReservation :: (Member ReservationTable r, Member (Error ReservationError) r, Member Trace r, Member (Input Config) r) => Dom.Reservation -> Sem r ()
-tryReservation r@(Dom.Reservation date _ _ requestedQuantity)  = do
+tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
   trace $ "trying to reservate " ++ show requestedQuantity ++ " more seats on " ++ show date
   maybeReservations <- fetch date
   config <- input
   let capacity = maxCapacity config
-  let rs = fromMaybe [] maybeReservations
-  if Dom.isReservationPossible r rs capacity
-    then persistReservation r
+  let todaysReservations = fromMaybe [] maybeReservations
+  if Dom.isReservationPossible res todaysReservations capacity
+    then persistReservation res
     else throw $ ReservationNotPossible ("Sorry, we are fully booked on " ++ show date)
 
 -- | persist a reservation to the reservation table.

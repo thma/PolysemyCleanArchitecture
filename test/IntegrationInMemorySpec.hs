@@ -14,11 +14,11 @@ import           Polysemy.State
 import           Polysemy.Trace                     (Trace, traceToIO, ignoreTrace)
 
 import           Effects.KVS
-import           Integration.ReservationIntegration
+import           UseCases.ReservationIntegration
 
-import Domain.ReservationDomain
-import Polysemy.Input (Input, runInputConst)
-import Integration.Config
+import           Domain.ReservationDomain
+import           Polysemy.Input (Input, runInputConst)
+import           UseCases.Config
 
 main :: IO ()
 main = hspec spec

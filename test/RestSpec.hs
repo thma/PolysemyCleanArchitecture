@@ -11,14 +11,14 @@ import           Data.IORef
 import qualified Data.Map.Strict                    as M
 import           Data.Time.Calendar
 import           Effects.KVS
-import           Integration.ReservationIntegration
-import           Integration.Config
+import           UseCases.ReservationIntegration
+import           UseCases.Config
 import qualified Network.Wai.Handler.Warp           as W
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.State                     hiding (get)
 import           Polysemy.Trace                     (traceToIO)
-import           Rest.ReservationService
+import           External.ReservationRestService
 import           Servant.Server
 
 import           Test.Hspec

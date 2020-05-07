@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE BlockArguments       #-}
-module Rest.ReservationService where
+module External.ReservationRestService where
 
 import           Servant
 import           Control.Monad.IO.Class     (liftIO)
@@ -12,11 +12,11 @@ import           Data.ByteString.Lazy.Char8 (pack)
 import           Polysemy
 import           Polysemy.Error
 
-import qualified Integration.ReservationIntegration as Int
-import qualified Domain.ReservationDomain           as Dom
+import qualified UseCases.ReservationIntegration as Int
+import qualified Domain.ReservationDomain        as Dom
 import Polysemy.Trace (Trace)
 import Polysemy.Input (Input)
-import Integration.Config (Config)
+import UseCases.Config (Config)
 
 -- | REST api for Restaurant Reservations
 type ReservationAPI =

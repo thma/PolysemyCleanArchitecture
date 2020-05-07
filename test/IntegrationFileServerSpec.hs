@@ -15,8 +15,8 @@ import           System.Directory  (doesFileExist, listDirectory, removeFile)
 
 
 import           Effects.KVS
-import           Integration.ReservationIntegration
-import           Integration.Config
+import           UseCases.ReservationIntegration
+import           UseCases.Config
 
 import Domain.ReservationDomain
 import           Effects.KVSFileServer
