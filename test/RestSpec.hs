@@ -12,6 +12,7 @@ import qualified Data.Map.Strict                    as M
 import           Data.Time.Calendar
 import           Effects.KVS
 import           Integration.ReservationIntegration
+import           Integration.Config
 import qualified Network.Wai.Handler.Warp           as W
 import           Polysemy
 import           Polysemy.Error
@@ -27,6 +28,7 @@ import           Data.ByteString (ByteString)
 import           Network.Wai.Test hiding (request)
 import Network.HTTP.Types.Method (methodPost)
 import Network.HTTP.Types.Header (hContentType)
+import Polysemy.Input (runInputConst)
 
 
 initReservations :: ReservationMap
@@ -44,6 +46,7 @@ createApp = do
       sem
         & runKvsOnMapState
         & runStateIORef @(ReservationMap) kvsIORef
+        & runInputConst config
         & runError @ReservationError
         & traceToIO
         & runM
@@ -51,6 +54,7 @@ createApp = do
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
     handleErrors (Left (ReservationNotPossible msg)) = Left err412 {errBody = pack msg}
     handleErrors (Right value) = Right value
+    config = Config {maxCapacity = 20, port = 8080}
 
 
 postData :: LB.ByteString

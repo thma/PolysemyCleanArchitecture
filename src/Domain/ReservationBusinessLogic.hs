@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric  #-}
 module Domain.ReservationBusinessLogic
 ( Reservation (..)
+, ReservationMap (..)
 , availableCapacity
 , usedCapacity
 , isReservationPossible
@@ -34,16 +35,18 @@ data Reservation = Reservation {
    , quantity :: Int      -- ^ how many seats are requested
 } deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 
+type ReservationMap = M.Map Day [Reservation]
+
 -- | the total number of seats in the restaurant
-maxCapacity :: Int
-maxCapacity = 20
+--maxCapacity :: Int
+--maxCapacity = 20
 
 -- | check whether it is possible to add a reservation to the table.
 -- | Return True if successful, else return False
-isReservationPossible :: Reservation -> [Reservation] -> Bool
-isReservationPossible res@(Reservation date _ _ requestedQuantity) reservationsOnDay =
+isReservationPossible :: Reservation -> [Reservation] -> Int -> Bool
+isReservationPossible res@(Reservation date _ _ requestedQuantity) reservationsOnDay maxCapacity =
   let
-    availableSeats = availableCapacity reservationsOnDay
+    availableSeats = availableCapacity reservationsOnDay maxCapacity
   in (availableSeats >= requestedQuantity)
 
 -- | add a reservation to
@@ -51,8 +54,8 @@ addReservation :: Reservation -> [Reservation] -> [Reservation]
 addReservation r rs = r:rs
 
 -- | computes the number of available seats for the
-availableCapacity :: [Reservation] -> Int
-availableCapacity res  = maxCapacity - usedCapacity res
+availableCapacity :: [Reservation] -> Int -> Int
+availableCapacity res maxCapacity = maxCapacity - usedCapacity res
 
 -- | computes the number of reserved seats for a list of reservations
 usedCapacity :: [Reservation] -> Int

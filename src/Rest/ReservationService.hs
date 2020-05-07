@@ -15,17 +15,19 @@ import           Polysemy.Error
 import qualified Integration.ReservationIntegration as Int
 import qualified Domain.ReservationBusinessLogic    as Dom
 import Polysemy.Trace (Trace)
+import Polysemy.Input (Input)
+import Integration.Config (Config)
 
 -- | REST api for Restaurant Reservations
 type ReservationAPI =
        "reservations" :> Summary "retrieve all reservations"
-                      :> Get     '[ JSON] Int.ReservationMap
+                      :> Get     '[ JSON] Dom.ReservationMap
   :<|> "reservations" :> Summary "place a new reservation"
                       :> ReqBody '[ JSON] Dom.Reservation
                       :> Post    '[ JSON] ()
 
 -- | implements the ReservationAPI
-reservationServer :: (Member Int.ReservationTable r, Member (Error Int.ReservationError) r, Member Trace r) => ServerT ReservationAPI (Sem r)
+reservationServer :: (Member Int.ReservationTable r, Member (Error Int.ReservationError) r, Member Trace r, Member (Input Config) r) => ServerT ReservationAPI (Sem r)
 reservationServer =
         Int.listAll        -- GET  /reservations
   :<|>  Int.tryReservation -- POST /reservations

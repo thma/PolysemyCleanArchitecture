@@ -16,22 +16,26 @@ import           System.Directory  (doesFileExist, listDirectory, removeFile)
 
 import           Effects.KVS
 import           Integration.ReservationIntegration
+import           Integration.Config
 
 import Domain.ReservationBusinessLogic
 import           Effects.KVSFileServer
+import Polysemy.Input (Input, runInputConst)
 
 main :: IO ()
 main = hspec spec
 
 -- -- | Takes a program with effects and handles each effect till it gets reduced to IO a.
-runAllEffects :: (forall r. Members [ReservationTable, Error ReservationError, Trace] r => Sem r a) -> IO a
+runAllEffects :: (forall r. Members [ReservationTable, Error ReservationError, Trace, Input Config] r => Sem r a) -> IO a
 runAllEffects program =
   program
     & runKvsAsFileServer
+    & runInputConst config
     & runError @ReservationError
     & ignoreTrace
     & runM
     & handleErrors
+  where config = Config {maxCapacity = 20, port = 8080}
 
 -- errors are rethrown as Runtime errors, which can be verified by HSpec.
 handleErrors :: IO (Either ReservationError a) -> IO a

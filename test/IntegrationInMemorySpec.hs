@@ -17,20 +17,25 @@ import           Effects.KVS
 import           Integration.ReservationIntegration
 
 import Domain.ReservationBusinessLogic
+import Polysemy.Input (Input, runInputConst)
+import Integration.Config
 
 main :: IO ()
 main = hspec spec
 
 -- | Takes a program with effects and handles each effect till it gets reduced to [Either ReservationError (ReservationMap, a)]. No IO !
 runPure :: ReservationMap 
-        -> (forall r. Members [ReservationTable, Error ReservationError, Trace] r => Sem r a)  
+        -> (forall r. Members [ReservationTable, Error ReservationError, Trace, Input Config] r => Sem r a)  
         -> [Either ReservationError (ReservationMap, a)]
 runPure kvsMap program = 
   program
      & runKvsPure kvsMap
+     & runInputConst config
      & runError @ReservationError
      & ignoreTrace
      & runM
+  where
+    config = Config {maxCapacity = 20, port = 8080}
 
 -- Helper functions for interpreting all effects in a pure way. That is no IO !
 runTryReservation :: ReservationMap -> Reservation -> Maybe ReservationMap
