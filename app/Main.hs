@@ -1,8 +1,7 @@
 module Main where
 
 import           Data.Function ((&))
-import           Effects.KVS
-import           Effects.KVSFileServer (runKvsAsFileServer)
+import           InterfacesAdapters.KVSFileServer (runKvsAsFileServer)
 import qualified Network.Wai.Handler.Warp as W
 import           Polysemy
 import           Polysemy.Error

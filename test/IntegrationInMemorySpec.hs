@@ -13,7 +13,7 @@ import           Polysemy.Error
 import           Polysemy.State
 import           Polysemy.Trace                     (Trace, traceToIO, ignoreTrace)
 
-import           Effects.KVS
+import           InterfacesAdapters.KVSInMemory
 import           UseCases.ReservationIntegration
 
 import           Domain.ReservationDomain

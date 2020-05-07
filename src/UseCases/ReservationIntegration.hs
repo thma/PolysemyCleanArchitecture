@@ -19,7 +19,7 @@ import           Polysemy.Trace              (Trace, trace)
 import           Polysemy.Input              (Input, input)
 
 import qualified Domain.ReservationDomain as Dom (Reservation (..), ReservationMap (..), isReservationPossible, addReservation)
-import           Effects.KVS                 (KVS, getKvs, insertKvs, listAllKvs)
+import           UseCases.KVS               (KVS, getKvs, insertKvs, listAllKvs)
 import           UseCases.Config
 
 {--

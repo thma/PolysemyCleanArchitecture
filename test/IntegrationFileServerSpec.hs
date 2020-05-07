@@ -14,12 +14,12 @@ import           Polysemy.Trace                     (Trace, traceToIO, ignoreTra
 import           System.Directory  (doesFileExist, listDirectory, removeFile)
 
 
-import           Effects.KVS
+--import           InterfacesAdapters.KVSInMemory
 import           UseCases.ReservationIntegration
 import           UseCases.Config
 
 import Domain.ReservationDomain
-import           Effects.KVSFileServer
+import           InterfacesAdapters.KVSFileServer
 import Polysemy.Input (Input, runInputConst)
 
 main :: IO ()
@@ -96,5 +96,5 @@ spec =
 
     it "throws an erorr if a reservation is not possible" $ do
       let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17
-      runTryReservation badReservation `shouldThrow` (errorCall $ "Sorry, we are fully booked on " ++ show day)   
+      runTryReservation badReservation `shouldThrow` (errorCall $ "Sorry, we are fully booked on " ++ show day)
       

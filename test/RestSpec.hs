@@ -10,7 +10,7 @@ import           Data.Function                      ((&))
 import           Data.IORef
 import qualified Data.Map.Strict                    as M
 import           Data.Time.Calendar
-import           Effects.KVS
+import           InterfacesAdapters.KVSInMemory
 import           UseCases.ReservationIntegration
 import           UseCases.Config
 import qualified Network.Wai.Handler.Warp           as W
