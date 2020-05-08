@@ -33,7 +33,7 @@ runAllEffects program =
     & ignoreTrace
     & runM
     & handleErrors
-  where config = Config {maxCapacity = 20, port = 8080}
+  where config = Config {maxCapacity = 20, port = 8080, dbPath = "kvs.db"}
 
 -- errors are rethrown as Runtime errors, which can be verified by HSpec.
 handleErrors :: IO (Either ReservationError a) -> IO a

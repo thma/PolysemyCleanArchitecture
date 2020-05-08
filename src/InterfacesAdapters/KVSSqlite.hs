@@ -23,13 +23,6 @@ import Data.ByteString.Lazy.Char8 (unpack, pack)
 import Polysemy.Trace (Trace, trace)
 
 
-{--
-  ListAllKvs :: KVS k v m [(k, v)]
-  GetKvs     :: k -> KVS k v m (Maybe v)
-  InsertKvs  :: k -> v -> KVS k v m ()
-  DeleteKvs  :: k -> KVS k v m ()
---}
-
 data KeyValueRow = KeyValueRow T.Text T.Text deriving (Show)
 
 instance FromRow KeyValueRow where
@@ -38,7 +31,7 @@ instance FromRow KeyValueRow where
 instance ToRow KeyValueRow where
   toRow (KeyValueRow key_ val) = toRow (key_, val)
 
--- | Run a KVStore effect on an SQLite backend. Requires a DB connection as input.
+-- | Run a KVStore effect against a SQLite backend. Requires a Config object as input.
 runKVStoreAsSQLite :: (Member (Embed IO) r, Member (Input Config) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v)
                    => Sem (KVS k v : r) a
                    -> Sem r a
@@ -49,6 +42,7 @@ runKVStoreAsSQLite = interpret $ \case
   DeleteKvs k   -> deleteAction k
   
   where   
+  
     getAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v) => k -> Sem r (Maybe v)
     getAction key = do
       conn <- connectionFrom input
@@ -59,6 +53,7 @@ runKVStoreAsSQLite = interpret $ \case
       case rows of
         []   -> return Nothing
         (KeyValueRow _key value):xs -> return $ (decode . encodeUtf8) value
+    
     
     listAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v) => Sem r [(k, v)]
     listAction = do
@@ -72,6 +67,7 @@ runKVStoreAsSQLite = interpret $ \case
           catNestedMaybe ((key, Just value):xs) = (key, value):catNestedMaybe xs
           catNestedMaybe ((key, Nothing):xs)    = catNestedMaybe xs
           
+          
     insertAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v) => k -> v -> Sem r ()
     insertAction key value = do
       let (query, params) = ("INSERT INTO store (key, value) VALUES (:key, :value) "
@@ -82,10 +78,12 @@ runKVStoreAsSQLite = interpret $ \case
       conn <- connectionFrom input
       embed $ SQL.executeNamed conn query params
         
+        
     deleteAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k) => k -> Sem r ()
     deleteAction key = do
       conn <- connectionFrom input
       embed $ SQL.executeNamed conn "DELETE FROM store WHERE key = :key" [":id" := show key]
+        
         
     -- | create a connection based on configuration data
     connectionFrom :: (Member (Embed IO) r) => Sem r Config -> Sem r SQL.Connection

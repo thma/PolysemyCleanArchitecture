@@ -35,7 +35,7 @@ runPure kvsMap program =
      & ignoreTrace
      & runM
   where
-    config = Config {maxCapacity = 20, port = 8080}
+    config = Config {maxCapacity = 20, port = 8080, dbPath = "kvs.db"}
 
 -- Helper functions for interpreting all effects in a pure way. That is no IO !
 runTryReservation :: ReservationMap -> Reservation -> Maybe ReservationMap
