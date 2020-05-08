@@ -20,16 +20,15 @@ import qualified Database.SQLite.Simple as SQL
 import Polysemy.Trace (traceToIO)
 import Polysemy.Input (runInputConst)
 
+
 -- | creates the WAI Application that can be executed by Warp.run.
 -- All Polysemy interpretations must be executed here.
-createApp :: Config -> SQL.Connection -> IO Application
-createApp config conn = do
-  return (serve reservationAPI $ hoistServer reservationAPI (interpretServer config conn) reservationServer)
+createApp :: Config -> IO Application
+createApp config = do
+  return (serve reservationAPI $ hoistServer reservationAPI (interpretServer config) reservationServer)
   where
-    interpretServer config conn sem  =  sem
---      & runKvsAsFileServer
+    interpretServer config sem  =  sem
       & runKVStoreAsSQLite
-      & runInputConst conn
       & runInputConst config
       & runError @ReservationError
       & traceToIO
@@ -42,7 +41,6 @@ createApp config conn = do
 main :: IO ()
 main = do
   let config = Config {maxCapacity = 20, port = 8080, dbPath = "kvs.db"} -- In real life this will be external configuration like commandline parameters or a configuration file.
-  conn <- getConnection (dbPath config)
-  app  <- createApp config conn
+  app  <- createApp config
   putStrLn $ "Starting server on port " ++ show (port config)
   Warp.run (port config) app
