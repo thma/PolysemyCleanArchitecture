@@ -21,6 +21,27 @@ description:         Please see the README on GitHub at <https://github.com/thma
 ghc-options:
   - -fplugin=Polysemy.Plugin
 
+default-extensions:
+  # Recommended for Polysemy
+  - DataKinds
+  - FlexibleContexts
+  - GADTs
+  - LambdaCase
+  - PolyKinds
+  - RankNTypes
+  - ScopedTypeVariables
+  - TypeApplications
+  - TypeOperators
+  - TypeFamilies
+  - TemplateHaskell
+
+  # Deriving extensions
+  - GeneralizedNewtypeDeriving
+  - DeriveGeneric
+
+  # Misc
+  - OverloadedStrings
+
 dependencies:
 - base >= 4.7 && < 5
 - aeson
@@ -39,21 +60,11 @@ dependencies:
 - errors
 - mtl
 - directory
+- sqlite-simple
 
 library:
   source-dirs: src
   ghc-options: -O2 -flate-specialise -fspecialise-aggressively
-  default-extensions:
-    - DataKinds
-    - FlexibleContexts
-    - GADTs
-    - LambdaCase
-    - PolyKinds
-    - RankNTypes
-    - ScopedTypeVariables
-    - TypeApplications
-    - TypeOperators
-    - TypeFamilies
 
 executables:
   RestaurantReservation:
@@ -62,17 +73,6 @@ executables:
     ghc-options: -threaded -rtsopts -with-rtsopts=-N -O2 -flate-specialise -fspecialise-aggressively
     dependencies:
     - RestaurantReservation
-    default-extensions:
-      - DataKinds
-      - FlexibleContexts
-      - GADTs
-      - LambdaCase
-      - PolyKinds
-      - RankNTypes
-      - ScopedTypeVariables
-      - TypeApplications
-      - TypeOperators
-      - TypeFamilies
 
 tests:
   RestaurantReservation-test:
@@ -86,14 +86,3 @@ tests:
     - hspec-wai
 #    - hspec-wai-json
     - wai-extra
-    default-extensions:
-      - DataKinds
-      - FlexibleContexts
-      - GADTs
-      - LambdaCase
-      - PolyKinds
-      - RankNTypes
-      - ScopedTypeVariables
-      - TypeApplications
-      - TypeOperators
-      - TypeFamilies
