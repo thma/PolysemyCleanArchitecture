@@ -43,7 +43,7 @@ storeEntity = encodeFile . getPath
 getPath :: String -> String
 getPath id = dataDir ++ id ++ extension
 
-dataDir   = ".stack-work/data/"
+dataDir   = ".stack-work/"
 extension = ".json"
 
 -- | load all persistent entities of type a

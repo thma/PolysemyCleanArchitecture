@@ -19,6 +19,7 @@ import           UseCases.Config
 import Domain.ReservationDomain
 import           InterfacesAdapters.KVSFileServer
 import Polysemy.Input (Input, runInputConst)
+import           Data.List         (isSuffixOf)
 
 main :: IO ()
 main = hspec spec
@@ -59,7 +60,8 @@ runListAll = do
 deleteAllFiles :: IO [()]
 deleteAllFiles = do
   allFiles <- listDirectory dataDir
-  mapM removeFile (map (\f -> dataDir ++ f) allFiles)
+  let filteredFiles = filter (isSuffixOf ".json") allFiles
+  mapM removeFile (map (\f -> dataDir ++ f) filteredFiles)
   
 
 day = fromGregorian 2020 5 2
