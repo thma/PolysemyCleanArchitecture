@@ -77,5 +77,3 @@ spec =
         (postJSON "/reservations" reservationData >> postJSON "/reservations" reservationData) `shouldRespondWith` 412
       it "responds with 200 for a valid DELETE /reservations" $
         deleteJSON "/reservations" reservationData `shouldRespondWith` 200
-
-
