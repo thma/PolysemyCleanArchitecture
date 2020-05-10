@@ -88,7 +88,9 @@ tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
     persistReservation r@(Dom.Reservation date _ _ _ ) = do
       trace $ "enter a new reservation to KV store: " ++ show r
       rs <- fetch date
-      insertKvs date (Dom.addReservation r rs)
+      let updated = Dom.addReservation r rs
+      trace $ "storing: " ++ show updated
+      insertKvs date updated
 
 
 -- | cancel a reservation, that is: delete it from the system.

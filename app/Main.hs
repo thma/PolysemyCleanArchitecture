@@ -1,8 +1,9 @@
 module Main where
 
 import           Data.Function ((&))
+import           UseCases.KVS               (KVS)
 import           InterfacesAdapters.KVSFileServer (runKvsAsFileServer)
-import           InterfacesAdapters.KVSSqlite
+import           InterfacesAdapters.KVSSqlite (runKVStoreAsSQLite)
 import qualified Network.Wai.Handler.Warp as Warp
 import           Polysemy
 import           Polysemy.Error
@@ -17,9 +18,9 @@ import           External.ReservationRestService
 import           UseCases.ReservationUseCase
 import           UseCases.Config
 import qualified Database.SQLite.Simple as SQL
-import Polysemy.Trace (traceToIO)
-import Polysemy.Input (runInputConst)
-
+import Polysemy.Trace (Trace, traceToIO)
+import Polysemy.Input (Input, runInputConst)
+--import Data.Aeson.Types (ToJSON, FromJSON)
 
 -- | creates the WAI Application that can be executed by Warp.run.
 -- All Polysemy interpretations must be executed here.

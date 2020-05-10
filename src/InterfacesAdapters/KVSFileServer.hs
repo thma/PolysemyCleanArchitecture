@@ -1,4 +1,4 @@
-module InterfacesAdapters.KVSFileServer 
+module InterfacesAdapters.KVSFileServer
   ( runKvsAsFileServer
   , dataDir
   ) 

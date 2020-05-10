@@ -4,34 +4,33 @@ import           Test.Hspec
 
 import           Control.Exception
 import           Control.Monad.Except
-import           Data.Function                      ((&))
-import qualified Data.Map.Strict                    as M
+import           Data.Function                    ((&))
+import qualified Data.Map.Strict                  as M
 import           Data.Time.Calendar
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.State
-import           Polysemy.Trace                     (Trace, traceToIO, ignoreTrace)
-import           System.Directory  (doesFileExist, listDirectory, removeFile)
+import           Polysemy.Trace                   (Trace, ignoreTrace, traceToIO)
+import           Polysemy.Input                   (Input, runInputConst)
+import           System.Directory                 (doesFileExist, listDirectory, removeFile)
+import           Data.List                        (isSuffixOf)
 
-import           UseCases.ReservationUseCase
 import           UseCases.Config
-
+import           UseCases.ReservationUseCase
 import           Domain.ReservationDomain
 import           InterfacesAdapters.KVSFileServer
-import Polysemy.Input (Input, runInputConst)
-import           Data.List         (isSuffixOf)
 
 main :: IO ()
 main = hspec spec
 
--- -- | Takes a program with effects and handles each effect till it gets reduced to IO a.
+-- | Takes a program with effects and handles each effect till it gets reduced to IO a.
 runAllEffects :: (forall r. Members [ReservationTable, Error ReservationError, Trace, Input Config] r => Sem r a) -> IO a
 runAllEffects program =
   program
     & runKvsAsFileServer
     & runInputConst config
     & runError @ReservationError
-    & traceToIO -- ignoreTrace
+    & ignoreTrace
     & runM
     & handleErrors
   where config = Config {maxCapacity = 20, port = 8080, dbPath = "kvs.db"}
@@ -52,59 +51,67 @@ runTryReservation res = do
 runFetch :: Day -> IO [Reservation]
 runFetch day = do
   runAllEffects (fetch day)
-  
+
 runListAll :: IO ReservationMap
 runListAll = do
   runAllEffects (listAll)
-  
+
 runCancel :: Reservation -> IO ()
 runCancel r = do
-  runAllEffects (cancel r)  
+  runAllEffects (cancel r)
 
+
+-- | helper function to clean the test data files
 deleteAllFiles :: IO [()]
 deleteAllFiles = do
   allFiles <- listDirectory dataDir
   let filteredFiles = filter (isSuffixOf ".json") allFiles
   mapM removeFile (map (\f -> dataDir ++ f) filteredFiles)
-  
+
 
 day = fromGregorian 2020 5 2
 res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
 
 spec :: Spec
-spec =
+spec = do
+  return deleteAllFiles
   describe "Reservation Use Case (with file IO)" $ do
     it "needs a file cleaning for repeatable tests in the file system..." $ do
       result <- deleteAllFiles
-      result  `shouldBe` [()]
+      map <- runListAll
+      M.size map `shouldBe` 0
+
     it "returns Nothing if there are no reservations for a given day" $ do
       result <- runFetch day
       result `shouldBe` []
-       
+
     it "can add a reservation if there are enough free seats" $ do
       let goodReservation = head res
       runTryReservation goodReservation
-      map <- runListAll 
+      map <- runListAll
       M.size map `shouldBe` 1
       reservations <- runFetch day
       goodReservation `elem` reservations `shouldBe` True
-      
+
     it "fetches a list of reservations from the KV store" $ do
       result <- runFetch day
       result `shouldBe` res
-      
+
     it "can retrieve a map of all reservations" $ do
-      map <- runListAll 
+      map <- runListAll
       M.size map `shouldBe` 1
 
     it "throws an error if a reservation is not possible" $ do
       let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17
       runTryReservation badReservation `shouldThrow` (errorCall $ "Sorry, only 16 seats left on " ++ show day)
-  
+
     it "can cancel a reservation" $ do
       let res1 = head res
       runTryReservation res1
-      map <- runListAll 
-      M.size map `shouldBe` 2
+      reservations <- runFetch day
+      length reservations `shouldBe` 2
+
       runCancel res1
-      M.size map `shouldBe` 1
+
+      reservations' <- runFetch day
+      length reservations' `shouldBe` 1
