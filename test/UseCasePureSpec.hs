@@ -44,10 +44,10 @@ runTryReservation kvsMap res = do
     [Right (m, ())] -> Just m
     [Left err]      -> Nothing
 
-runFetch :: ReservationMap -> Day -> Maybe [Reservation]
+runFetch :: ReservationMap -> Day -> [Reservation]
 runFetch kvsMap day = do
   case runPure kvsMap (fetch day) of
-    [Right (_, maybe)] -> maybe
+    [Right (_, reservations)] -> reservations
     [Left err]         -> error "fetch failed"
   
 runListAll :: ReservationMap -> ReservationMap
@@ -67,11 +67,11 @@ spec :: Spec
 spec =
   describe "Reservation Use Case (only pure code)" $ do
     it "fetches a list of reservations from the KV store" $ do
-      (runFetch initReservations day) `shouldBe` (Just res)
+      (runFetch initReservations day) `shouldBe` res
 
     it "returns Nothing if there are no reservations for a given day" $ do
       let kvsMap = M.fromList []
-      (runFetch kvsMap day) `shouldBe` Nothing
+      (runFetch kvsMap day) `shouldBe` []
 
     it "can retrieve a map of all reservations" $ do
       let m = runListAll initReservations
@@ -80,12 +80,10 @@ spec =
     it "can add a reservation if there are enough free seats" $ do
       let goodReservation = Reservation day "Gabriella. Miller" "gm@example.com" 4
       let m = runTryReservation initReservations goodReservation
-          maybeMatch = case m of
+          reservations = case m of
             Just map -> runFetch map day
-            Nothing  -> Nothing
-      case maybeMatch of
-        Nothing -> fail "no reservations found"
-        Just reservations -> (goodReservation `elem` reservations `shouldBe` True)
+            Nothing  -> []
+      goodReservation `elem` reservations `shouldBe` True
 
     it "reports an error if a reservation is not possible" $ do
       let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17

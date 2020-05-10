@@ -49,7 +49,7 @@ runTryReservation :: Reservation -> IO ()
 runTryReservation res = do
   runAllEffects (tryReservation res)
 
-runFetch :: Day -> IO (Maybe [Reservation])
+runFetch :: Day -> IO [Reservation]
 runFetch day = do
   runAllEffects (fetch day)
   
@@ -74,22 +74,20 @@ spec =
       result <- deleteAllFiles
       result  `shouldBe` [()]
     it "returns Nothing if there are no reservations for a given day" $ do
-      maybeMatch <- runFetch day
-      maybeMatch `shouldBe` Nothing
- 
+      result <- runFetch day
+      result `shouldBe` []
+       
     it "can add a reservation if there are enough free seats" $ do
       let goodReservation = head res
       runTryReservation goodReservation
       map <- runListAll 
-      maybeMatch <- runFetch day
-      case maybeMatch of
-        Nothing -> fail "no reservations found"
-        Just reservations -> (goodReservation `elem` reservations `shouldBe` True)
+      reservations <- runFetch day
+      goodReservation `elem` reservations `shouldBe` True
       
     it "fetches a list of reservations from the KV store" $ do
-      maybeMatch <- runFetch day
-      maybeMatch `shouldBe` (Just res)
-
+      result <- runFetch day
+      result `shouldBe` res
+      
     it "can retrieve a map of all reservations" $ do
       map <- runListAll 
       M.size map `shouldBe` 1

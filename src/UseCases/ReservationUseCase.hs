@@ -61,10 +61,11 @@ newtype ReservationError = ReservationNotPossible String deriving (Show, Eq)
 -- | fetch the list of reservations for a given day from the key value store.
 -- | If no match is found, Nothings is returned, else the Result wrapped with Just.
 -- | Implements UseCase 1.
-fetch :: (Member ReservationTable r, Member Trace r) => Day -> Sem r (Maybe [Dom.Reservation])
+fetch :: (Member ReservationTable r, Member Trace r) => Day -> Sem r [Dom.Reservation]
 fetch day = do
   trace $ "fetch reservations for " ++ show day
-  getKvs day
+  maybeList <- getKvs day
+  return $ fromMaybe [] maybeList
 
 
 -- | try to add a reservation to the table.
@@ -73,10 +74,9 @@ fetch day = do
 tryReservation :: (Member ReservationTable r, Member (Error ReservationError) r, Member Trace r, Member (Input Config) r) => Dom.Reservation -> Sem r ()
 tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
   trace $ "trying to reservate " ++ show requestedQuantity ++ " more seats on " ++ show date
-  maybeReservations <- fetch date
+  todaysReservations <- fetch date
   config <- input
   let totalCapacity = maxCapacity config
-  let todaysReservations = fromMaybe [] maybeReservations
   if Dom.isReservationPossible res todaysReservations totalCapacity
     then persistReservation res
     else throw $ ReservationNotPossible ("Sorry, we are fully booked on " ++ show date)
@@ -86,8 +86,7 @@ tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
     persistReservation :: (Member (KVS Day [Dom.Reservation]) r, Member Trace r)  => Dom.Reservation -> Sem r ()
     persistReservation r@(Dom.Reservation date _ _ _ ) = do
       trace $ "enter a new reservation to KV store: " ++ show r
-      maybeReservations <- fetch date
-      let rs = fromMaybe [] maybeReservations
+      rs <- fetch date
       insertKvs date (Dom.addReservation r rs)
 
 
@@ -96,11 +95,9 @@ tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
 cancel :: (Member (KVS Day [Dom.Reservation]) r, Member Trace r)  => Dom.Reservation -> Sem r ()
 cancel res@(Dom.Reservation date _ _ _) = do
   trace $ "deleting reservation " ++ show res
-  maybeReservations <- fetch date
-  case maybeReservations of
-    Nothing           -> return ()
-    Just reservations -> when (res `elem` reservations)
-                           $ insertKvs date (Dom.cancelReservation res reservations)
+  reservations <- fetch date
+  when (res `elem` reservations) 
+    $ insertKvs date (Dom.cancelReservation res reservations)
       
   
 -- | list all entries from the key value store and return them as a ReservationMap
