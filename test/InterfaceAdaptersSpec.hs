@@ -1,12 +1,8 @@
 module InterfaceAdaptersSpec where
 
 import           Test.Hspec
-
---import           Control.Exception
---import           Control.Monad.Except
 import           Data.Function                    ((&))
 import qualified Data.Map.Strict                  as M
---import           Data.Time.Calendar
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.Trace
@@ -15,7 +11,6 @@ import           Polysemy.Input                   (Input, runInputConst)
 import           UseCases.KVS
 import           InterfacesAdapters.KVSSqlite
 import           UseCases.Config
---import           Data.List         (isSuffixOf)
 
 main :: IO ()
 main = hspec spec
@@ -28,10 +23,8 @@ runAllEffects program =
   program
     & runKVStoreAsSQLite
     & runInputConst config
---    & runError @ReservationError
     & ignoreTrace
     & runM
---    & handleErrors
   where config = Config {maxCapacity = 20, port = 8080, dbPath = "kvs-test.db"}
 
 -- errors are rethrown as Runtime errors, which can be verified by HSpec.
@@ -40,14 +33,12 @@ handleErrors e = do
   either <- e
   case either of
     Right v -> return v
-    Left _  -> (error "something bad happend")
-
+    Left _  -> error "something bad happend"
 
 -- | a key value table mapping Int to a list of Strings
 type KeyValueTable = KVS Int [String]
 
 data Memo = Memo Int [String] deriving (Show)
-
 
 persistEntry :: (Member KeyValueTable r)  => Memo -> Sem r ()
 persistEntry (Memo id lines ) = insertKvs id lines
@@ -61,9 +52,7 @@ fetchAll = fmap M.fromList listAllKvs
 deleteEntry :: (Member KeyValueTable r)  => Int -> Sem r ()
 deleteEntry = deleteKvs
 
-
 -- Helper functions for interpreting all effects in IO
-
 runPersist :: Memo -> IO ()
 runPersist memo = runAllEffects (persistEntry memo)
 
@@ -76,12 +65,9 @@ runFetchAll = runAllEffects fetchAll
 runDelete :: Int -> IO ()
 runDelete k = runAllEffects (deleteEntry k)
 
-
-
 key = 4711
 text = ["In the morning", "I don't drink coffee", "But lots of curcuma chai."]
 memo = Memo key text
-
 
 spec :: Spec
 spec =

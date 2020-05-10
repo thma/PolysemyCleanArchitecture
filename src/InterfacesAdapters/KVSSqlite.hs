@@ -82,7 +82,7 @@ runKVStoreAsSQLite = interpret $ \case
     deleteAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k) => k -> Sem r ()
     deleteAction key = do
       conn <- connectionFrom input
-      embed $ SQL.executeNamed conn "DELETE FROM store WHERE key = :key" [":id" := show key]
+      embed $ SQL.executeNamed conn "DELETE FROM store WHERE key = :key" [":key" := show key]
         
         
     -- | create a connection based on configuration data
