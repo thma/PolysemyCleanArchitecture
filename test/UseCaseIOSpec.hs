@@ -16,7 +16,7 @@ import           System.Directory  (doesFileExist, listDirectory, removeFile)
 import           UseCases.ReservationUseCase
 import           UseCases.Config
 
-import Domain.ReservationDomain
+import           Domain.ReservationDomain
 import           InterfacesAdapters.KVSFileServer
 import Polysemy.Input (Input, runInputConst)
 import           Data.List         (isSuffixOf)
@@ -31,7 +31,7 @@ runAllEffects program =
     & runKvsAsFileServer
     & runInputConst config
     & runError @ReservationError
-    & ignoreTrace
+    & traceToIO -- ignoreTrace
     & runM
     & handleErrors
   where config = Config {maxCapacity = 20, port = 8080, dbPath = "kvs.db"}
@@ -56,6 +56,10 @@ runFetch day = do
 runListAll :: IO ReservationMap
 runListAll = do
   runAllEffects (listAll)
+  
+runCancel :: Reservation -> IO ()
+runCancel r = do
+  runAllEffects (cancel r)  
 
 deleteAllFiles :: IO [()]
 deleteAllFiles = do
@@ -81,6 +85,7 @@ spec =
       let goodReservation = head res
       runTryReservation goodReservation
       map <- runListAll 
+      M.size map `shouldBe` 1
       reservations <- runFetch day
       goodReservation `elem` reservations `shouldBe` True
       
@@ -94,5 +99,12 @@ spec =
 
     it "throws an error if a reservation is not possible" $ do
       let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17
-      runTryReservation badReservation `shouldThrow` (errorCall $ "Sorry, we are fully booked on " ++ show day)
-      
+      runTryReservation badReservation `shouldThrow` (errorCall $ "Sorry, only 16 seats left on " ++ show day)
+  
+    it "can cancel a reservation" $ do
+      let res1 = head res
+      runTryReservation res1
+      map <- runListAll 
+      M.size map `shouldBe` 2
+      runCancel res1
+      M.size map `shouldBe` 1

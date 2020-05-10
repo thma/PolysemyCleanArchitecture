@@ -19,7 +19,7 @@ import           Polysemy.Error
 import           Polysemy.Trace              (Trace, trace)
 import           Polysemy.Input              (Input, input)
 
-import qualified Domain.ReservationDomain as Dom (Reservation (..), ReservationMap (..), isReservationPossible, addReservation, cancelReservation)
+import qualified Domain.ReservationDomain as Dom (Reservation (..), ReservationMap (..), isReservationPossible, addReservation, cancelReservation, availableSeats)
 import           UseCases.KVS               (KVS, getKvs, insertKvs, listAllKvs)
 import           UseCases.Config
 import           Control.Monad (when)
@@ -77,9 +77,10 @@ tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
   todaysReservations <- fetch date
   config <- input
   let totalCapacity = maxCapacity config
+      availableSeats = Dom.availableSeats totalCapacity todaysReservations
   if Dom.isReservationPossible res todaysReservations totalCapacity
     then persistReservation res
-    else throw $ ReservationNotPossible ("Sorry, we are fully booked on " ++ show date)
+    else throw $ ReservationNotPossible ("Sorry, only " ++ show availableSeats ++ " seats left on " ++ show date)
     
   where
     -- | persist a reservation to the reservation table.
@@ -96,8 +97,10 @@ cancel :: (Member (KVS Day [Dom.Reservation]) r, Member Trace r)  => Dom.Reserva
 cancel res@(Dom.Reservation date _ _ _) = do
   trace $ "deleting reservation " ++ show res
   reservations <- fetch date
-  when (res `elem` reservations) 
-    $ insertKvs date (Dom.cancelReservation res reservations)
+  trace $ "before: " ++ show reservations
+  let after = Dom.cancelReservation res reservations
+  trace $ "after: " ++ show after
+  insertKvs date after
       
   
 -- | list all entries from the key value store and return them as a ReservationMap

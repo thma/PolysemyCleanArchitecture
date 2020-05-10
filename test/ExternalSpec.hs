@@ -26,7 +26,7 @@ import           Test.Hspec.Wai
 import qualified Data.ByteString.Lazy as LB
 import           Data.ByteString (ByteString)
 import           Network.Wai.Test hiding (request)
-import Network.HTTP.Types.Method (methodPost)
+import Network.HTTP.Types.Method (methodPost, methodDelete)
 import Network.HTTP.Types.Header (hContentType)
 import Polysemy.Input (runInputConst)
 
@@ -57,10 +57,11 @@ createApp = do
     config = Config {maxCapacity = 20, port = 8080, dbPath = "kvs.db"}
 
 
-postData :: LB.ByteString
-postData = "{\"email\":\"amjones@example.com\",\"quantity\":10,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}"
+reservationData :: LB.ByteString
+reservationData = "{\"email\":\"amjones@example.com\",\"quantity\":10,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}"
 
 postJSON path = request methodPost path [(hContentType, "application/json")]
+deleteJSON path = request methodDelete path [(hContentType, "application/json")]
 
 main :: IO ()
 main = hspec spec
@@ -72,7 +73,10 @@ spec =
       it "responds with 200 for a call GET /reservations " $
         get "/reservations" `shouldRespondWith` "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":4,\"date\":\"2020-05-02\",\"name\":\"Andrew M. Jones\"}]}"
       it "reponds with 200 for a valid POST /reservations" $
-        postJSON "/reservations" postData `shouldRespondWith` 200
+        postJSON "/reservations" reservationData `shouldRespondWith` 200
       it "reponds with 412 if a reservation can not be done on a given day" $
-        (postJSON "/reservations" postData >> postJSON "/reservations" postData) `shouldRespondWith` 412
+        (postJSON "/reservations" reservationData >> postJSON "/reservations" reservationData) `shouldRespondWith` 412
+      it "reponds with 200 for a valid DELETE /reservations" $
+        deleteJSON "/reservations" reservationData `shouldRespondWith` 200
+        
      

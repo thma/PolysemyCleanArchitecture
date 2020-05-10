@@ -37,7 +37,7 @@ retrieveEntity = decodeFile . getPath
 
 -- | store persistent entity of type a and identified by id to the filesystem
 storeEntity :: (ToJSON a) => String -> a -> IO ()
-storeEntity = encodeFile . getPath
+storeEntity key = encodeFile (getPath key)
 
 -- | compute path of data file
 getPath :: String -> String

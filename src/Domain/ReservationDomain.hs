@@ -4,6 +4,7 @@ module Domain.ReservationDomain
 ( Reservation (..)
 , ReservationMap (..)
 , usedCapacity
+, availableSeats
 , isReservationPossible
 , addReservation
 , cancelReservation
@@ -48,9 +49,10 @@ usedCapacity (Reservation _ _ _ quantity : rest) = quantity + usedCapacity rest
 -- | Return True if successful, else return False
 isReservationPossible :: Reservation -> [Reservation] -> Int -> Bool
 isReservationPossible res@(Reservation date _ _ requestedSeats) reservationsOnDay maxCapacity =
-  availableSeats >= requestedSeats
-  where
-    availableSeats = maxCapacity - usedCapacity reservationsOnDay
+  availableSeats maxCapacity reservationsOnDay >= requestedSeats
+
+-- | computes the number of available seats for a list of reservations.
+availableSeats maxCapacity reservationsOnDay= maxCapacity - usedCapacity reservationsOnDay
 
 -- | add a reservation to
 addReservation :: Reservation -> [Reservation] -> [Reservation]

@@ -56,6 +56,12 @@ runListAll kvsMap = do
     [Right (_, m)] -> m
     [Left err]     -> error "listALl failed"
 
+runCancel :: ReservationMap -> Reservation -> Maybe ReservationMap
+runCancel kvsMap res = do
+  case runPure kvsMap (cancel res) of
+    [Right (m, ())] -> Just m
+    [Left err]      -> Nothing    
+
 -- setting up test fixtures
 initReservations :: ReservationMap
 initReservations = M.singleton day res
@@ -88,3 +94,13 @@ spec =
     it "reports an error if a reservation is not possible" $ do
       let badReservation = Reservation day "Gabriella. Miller" "gm@example.com" 17
       (runTryReservation initReservations badReservation) `shouldBe` Nothing
+      
+    it "cancels a reservation by deleting it from the KV store" $ do
+      let res1 = res !! 0
+          res2 = Reservation day "Gabriella. Miller" "gm@example.com" 5
+          kvsMap = M.fromList [(day, [res1, res2])]
+          m = runCancel kvsMap res1
+          reservations = case m of
+            Just map -> runFetch map day
+            Nothing  -> []
+      reservations `shouldBe` [res2]     
