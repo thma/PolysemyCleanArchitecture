@@ -32,10 +32,10 @@ instance ToRow KeyValueRow where
   toRow (KeyValueRow key_ val) = toRow (key_, val)
 
 -- | Run a KVStore effect against a SQLite backend. Requires a Config object as input.
-runKVStoreAsSQLite :: (Member (Embed IO) r, Member (Input Config) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v)
+runKvsAsSQLite :: (Member (Embed IO) r, Member (Input Config) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v)
                    => Sem (KVS k v : r) a
                    -> Sem r a
-runKVStoreAsSQLite = interpret $ \case
+runKvsAsSQLite = interpret $ \case
   GetKvs k      -> getAction k
   ListAllKvs    -> listAction
   InsertKvs k v -> insertAction k v

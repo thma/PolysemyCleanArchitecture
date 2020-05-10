@@ -54,7 +54,7 @@ createApp = do
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
     handleErrors (Left (ReservationNotPossible msg)) = Left err412 {errBody = pack msg}
     handleErrors (Right value) = Right value
-    config = Config {maxCapacity = 20, port = 8080, dbPath = "kvs.db"}
+    config = Config {maxCapacity = 20, port = 8080, dbPath = "kvs.db", backend = InMemory}
 
 
 reservationData :: LB.ByteString
@@ -72,11 +72,11 @@ spec =
     describe "Rest Service" $ do
       it "responds with 200 for a call GET /reservations " $
         get "/reservations" `shouldRespondWith` "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":4,\"date\":\"2020-05-02\",\"name\":\"Andrew M. Jones\"}]}"
-      it "reponds with 200 for a valid POST /reservations" $
+      it "responds with 200 for a valid POST /reservations" $
         postJSON "/reservations" reservationData `shouldRespondWith` 200
-      it "reponds with 412 if a reservation can not be done on a given day" $
+      it "responds with 412 if a reservation can not be done on a given day" $
         (postJSON "/reservations" reservationData >> postJSON "/reservations" reservationData) `shouldRespondWith` 412
-      it "reponds with 200 for a valid DELETE /reservations" $
+      it "responds with 200 for a valid DELETE /reservations" $
         deleteJSON "/reservations" reservationData `shouldRespondWith` 200
         
      
