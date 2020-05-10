@@ -23,7 +23,7 @@ jobs:
       env:
         cache-name: cache-stack
       with:
-        path: ~/.stack-works
+        path: ~/.stack-work
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.stack-work') }}-${{ hashFiles('**/package.yaml') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ env.cache-name }}-
