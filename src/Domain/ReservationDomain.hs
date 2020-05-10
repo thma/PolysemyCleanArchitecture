@@ -6,15 +6,17 @@ module Domain.ReservationDomain
 , usedCapacity
 , isReservationPossible
 , addReservation
+, cancelReservation
 )
 
 where
 
-import           Data.Aeson      --(FromJSON, ToJSON)
-import           GHC.Generics
+import           Data.Aeson
+import           Data.List
+import qualified Data.Map.Strict    as M
 import           Data.Time.Calendar
 import           Data.Time.Clock
-import qualified Data.Map.Strict as M
+import           GHC.Generics
 
 {--
 This module implements the business logic for seat reservations in a very small boutique restaurant.
@@ -26,12 +28,13 @@ This makes it easy to test them in isolation.
 --}
 
 -- | a data type representing a reservation
-data Reservation = Reservation {
-     date     :: Day      -- ^ the date of the reservation
-   , name     :: String   -- ^ the name of the guest placing the reservation
-   , email    :: String   -- ^ the email address of the guest
-   , quantity :: Int      -- ^ how many seats are requested
-} deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
+data Reservation = Reservation
+    { date     :: Day    -- ^ the date of the reservation
+    , name     :: String -- ^ the name of the guest placing the reservation
+    , email    :: String -- ^ the email address of the guest
+    , quantity :: Int    -- ^ how many seats are requested
+    }
+    deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 
 -- | a key value map holding a list of reservations for any given day
 type ReservationMap = M.Map Day [Reservation]
@@ -52,3 +55,7 @@ isReservationPossible res@(Reservation date _ _ requestedSeats) reservationsOnDa
 -- | add a reservation to
 addReservation :: Reservation -> [Reservation] -> [Reservation]
 addReservation r rs = r:rs
+
+-- | cancel a reservation for a given list of reservations.
+cancelReservation :: Reservation -> [Reservation] -> [Reservation]
+cancelReservation = delete
