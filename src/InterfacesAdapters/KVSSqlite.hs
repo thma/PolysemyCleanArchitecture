@@ -96,6 +96,3 @@ runKVStoreAsSQLite = interpret $ \case
             conn <- SQL.open dbFile
             SQL.execute_ conn "CREATE TABLE IF NOT EXISTS store (key TEXT PRIMARY KEY, value TEXT)"
             return conn
-
-
-

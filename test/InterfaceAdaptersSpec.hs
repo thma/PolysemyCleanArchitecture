@@ -71,7 +71,7 @@ memo = Memo key text
 
 spec :: Spec
 spec =
-  describe "The KV STore SQLite Implementation" $ do
+  describe "The KV Store SQLite Implementation" $ do
     it "returns Nothing if nothing can be found for a given id" $ do
       maybeMatch <- runFetch key
       maybeMatch `shouldBe` Nothing
