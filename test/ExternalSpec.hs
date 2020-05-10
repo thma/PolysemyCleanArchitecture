@@ -1,34 +1,33 @@
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric  #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module ExternalSpec where
 
 import           Control.Monad.Except
-import           Data.ByteString.Lazy.Char8         (pack)
-import           Data.Function                      ((&))
+import           Data.ByteString                 (ByteString)
+import qualified Data.ByteString.Lazy            as LB
+import           Data.ByteString.Lazy.Char8      (pack)
+import           Data.Function                   ((&))
 import           Data.IORef
-import qualified Data.Map.Strict                    as M
+import qualified Data.Map.Strict                 as M
 import           Data.Time.Calendar
+import           External.ReservationRestService
 import           InterfacesAdapters.KVSInMemory
-import           UseCases.ReservationUseCase
-import           UseCases.Config
-import qualified Network.Wai.Handler.Warp           as W
+import           Network.HTTP.Types.Header       (hContentType)
+import           Network.HTTP.Types.Method       (methodDelete, methodPost)
+import qualified Network.Wai.Handler.Warp        as W
+import           Network.Wai.Test                hiding (request)
 import           Polysemy
 import           Polysemy.Error
-import           Polysemy.State                     hiding (get)
-import           Polysemy.Trace                     (traceToIO, ignoreTrace)
-import           External.ReservationRestService
+import           Polysemy.Input                  (runInputConst)
+import           Polysemy.State                  hiding (get)
+import           Polysemy.Trace                  (ignoreTrace, traceToIO)
 import           Servant.Server
-
 import           Test.Hspec
 import           Test.Hspec.Wai
-import qualified Data.ByteString.Lazy as LB
-import           Data.ByteString (ByteString)
-import           Network.Wai.Test hiding (request)
-import Network.HTTP.Types.Method (methodPost, methodDelete)
-import Network.HTTP.Types.Header (hContentType)
-import Polysemy.Input (runInputConst)
+import           UseCases.Config
+import           UseCases.ReservationUseCase
 
 
 initReservations :: ReservationMap
@@ -78,5 +77,5 @@ spec =
         (postJSON "/reservations" reservationData >> postJSON "/reservations" reservationData) `shouldRespondWith` 412
       it "responds with 200 for a valid DELETE /reservations" $
         deleteJSON "/reservations" reservationData `shouldRespondWith` 200
-        
-     
+
+
