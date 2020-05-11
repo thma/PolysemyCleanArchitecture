@@ -19,22 +19,27 @@ import           Polysemy.Trace                   (Trace, traceToIO)
 import           Servant.Server
 import           UseCases.KVS                     (KVS)
 import           UseCases.ReservationUseCase
+import           Data.IORef (newIORef)
+import           InterfacesAdapters.KVSInMemory (runKvsOnMapState)
+import           Polysemy.State (runStateIORef)
 
 
 --selectBackend  :: Config -> (Show k, Read k, ToJSON v, FromJSON v) => Sem [KVS k v, Input Config, Error ReservationError, Trace, Embed IO] a -> Sem [Input Config, Error ReservationError, Trace, Embed IO] a
-selectBackend config = case backend config of
+
+selectBackend config kvsIORef = case backend config of
   SQLite     -> runKvsAsSQLite
   FileServer -> runKvsAsFileServer
-  
+--  InMemory   -> (runStateIORef @(ReservationMap) kvsIORef . runKvsOnMapState)
 
 -- | creates the WAI Application that can be executed by Warp.run.
 -- All Polysemy interpretations must be executed here.
 createApp :: Config -> IO Application
 createApp config = do
-  return (serve reservationAPI $ hoistServer reservationAPI (interpretServer config) reservationServer)
+  kvsIORef <- newIORef (M.fromList [] :: ReservationMap)
+  return (serve reservationAPI $ hoistServer reservationAPI (interpretServer config kvsIORef) reservationServer)
   where
-    interpretServer config sem  =  sem
-      & selectBackend config
+    interpretServer config kvsIORef sem  =  sem
+      & selectBackend config kvsIORef
       & runInputConst config
       & runError @ReservationError
       & traceToIO
