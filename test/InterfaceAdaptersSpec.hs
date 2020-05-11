@@ -25,7 +25,7 @@ runAllEffects program =
     & runInputConst config
     & ignoreTrace
     & runM
-  where config = Config {maxCapacity = 20, port = 8080, dbPath = "kvs-test.db", backend = SQLite}
+  where config = Config {port = 8080, dbPath = "kvs-test.db", backend = SQLite}
 
 -- errors are rethrown as Runtime errors, which can be verified by HSpec.
 handleErrors :: IO (Either err a) -> IO a

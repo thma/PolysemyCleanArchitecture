@@ -67,18 +67,21 @@ fetch day = do
   maybeList <- getKvs day
   return $ fromMaybe [] maybeList
 
+-- | the maximum capacity of the restaurant.
+-- | to keep things simple this just a constant value of 20.
+-- | In real life this would kept persistent in a database, and would be accessed by yet another abstract effect.
+maxCapacity :: Int
+maxCapacity = 20
 
 -- | try to add a reservation to the table.
 -- | Return Just the modified table if successful, else return Nothing
 -- | implements UseCase 2.
-tryReservation :: (Member ReservationTable r, Member (Error ReservationError) r, Member Trace r, Member (Input Config) r) => Dom.Reservation -> Sem r ()
+tryReservation :: (Member ReservationTable r, Member (Error ReservationError) r, Member Trace r) => Dom.Reservation -> Sem r ()
 tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
   trace $ "trying to reservate " ++ show requestedQuantity ++ " more seats on " ++ show date
   todaysReservations <- fetch date
-  config <- input
-  let totalCapacity = maxCapacity config
-      availableSeats = Dom.availableSeats totalCapacity todaysReservations
-  if Dom.isReservationPossible res todaysReservations totalCapacity
+  let availableSeats = Dom.availableSeats maxCapacity todaysReservations
+  if Dom.isReservationPossible res todaysReservations maxCapacity
     then persistReservation res
     else throw $ ReservationNotPossible ("Sorry, only " ++ show availableSeats ++ " seats left on " ++ show date)
     
