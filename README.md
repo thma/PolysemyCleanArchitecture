@@ -2,6 +2,34 @@
 
 [![Actions Status](https://github.com/thma/RestaurantReservation/workflows/Haskell%20CI/badge.svg)](https://github.com/thma/RestaurantReservation/actions)
 
+## Motivation
+
+While writing [Why Haskell Matters](https://github.com/thma/WhyHaskellMatters#readme) I prepared a little 
+demo application that was meant to be an example of a cleanly designed REST application in Haskell. 
+In particular, I wanted to demonstrate how the clear separation of *pure* and *impure* code helps to
+provide state-of-the-art testability of all application layers.
+
+I failed! 
+
+I was able to write the domain logic in *pure* code consisting only of *total* functions. 
+It was a great pleasure to write unit tests for them!
+
+However, as soon as I started writing controllers that coordinate
+access to the domain logic as well as to a persistence layer to retrieve and store data, I was stuck in the IO Monad.
+That is, in test cases I was not able to test the controllers independently of the concrete backend.
+
+Then I tried to apply the *final tagless* pattern for the persistence layer. This allowed abstracting out the concrete 
+persistence layer and writing controller tests with a mocked persistence backend.
+But when it came to testing the REST API handlers (written with Servant) I was again stuck in the IO Monad as the Handler andtype is defined as 
+`newtype Handler a = Handler { runHandler' :: ExceptT ServerError IO a }`.
+
+I was desperately looking for something that allowed me to combine different types of effects 
+(like persistence, logging, configuration, http handlers, error handling, etc.) in controllers and handlers but still to be able to
+write tests that allow using mocks and stubs.
+
+As I was stuck with the mtl based code I had a look at some of the *algebraic effect systems* available in Haskell, like 
+fused-effects, free-simple, extensible-effects and Polysemy. 
+
 
 
 ## Why Clean Architecture ?
