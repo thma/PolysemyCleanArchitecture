@@ -85,10 +85,6 @@ jobs:
       - name: Test
         run: |
           stack test --system-ghc
-
-
-
-
 #name: Haskell CI
 #
 #on: [push]
