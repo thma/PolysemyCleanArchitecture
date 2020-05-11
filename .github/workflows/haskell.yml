@@ -27,45 +27,5 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-
 
-#      - name: Build
-#        run: stack install
       - name: Run tests
         run: stack test
-
-
-
-#name: Haskell CI
-#
-#on:
-#  push:
-#    branches: [ master ]
-#  pull_request:
-#    branches: [ master ]
-#
-#jobs:
-#  build:
-#
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#    - uses: actions/checkout@v2
-#    - uses: actions/setup-haskell@v1
-#      with:
-#        ghc-version: '8.8.2'
-#        cabal-version: '3.0'
-#
-#    - name: Cache
-#      uses: actions/cache@v1
-#      env:
-#        cache-name: cache-stack
-#      with:
-#        path: ~/.stack-work
-#        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.stack-work') }}-${{ hashFiles('**/package.yaml') }}
-#        restore-keys: |
-#          ${{ runner.os }}-build-${{ env.cache-name }}-
-#          ${{ runner.os }}-build-
-#          ${{ runner.os }}-
-#
-#    - name: Run tests
-#      run: stack test
-#
