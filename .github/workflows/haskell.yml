@@ -14,8 +14,21 @@ jobs:
           ghc-version: '8.6.5'
           cabal-version: '3.0'
           stack: '2.3.1'
-      - name: Build
-        run: stack install
+
+      - name: Cache
+        uses: actions/cache@v1
+        env:
+          cache-name: cache-stack
+        with:
+          path: ~/.stack-work
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.yaml') }}-${{ hashFiles('**/*.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+#      - name: Build
+#        run: stack install
       - name: Run tests
         run: stack test
 
