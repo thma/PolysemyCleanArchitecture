@@ -1,4 +1,4 @@
-module UseCases.Config where
+module InterfacesAdapters.Config where
 
 -- | global application configuration
 data Config = Config {

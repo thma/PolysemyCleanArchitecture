@@ -16,7 +16,7 @@ import qualified UseCases.ReservationUseCase as UC (ReservationTable, Reservatio
 import qualified Domain.ReservationDomain    as Dom (Reservation, ReservationMap)
 import Polysemy.Trace (Trace)
 import Polysemy.Input (Input)
-import UseCases.Config (Config)
+import InterfacesAdapters.Config (Config)
 import Data.Time.Calendar (Day)
 import Control.Error (fromMaybe)
 

@@ -5,20 +5,21 @@ import           Test.Hspec
 import           Control.Exception
 import           Control.Monad.Except
 import           Data.Function                    ((&))
+import           Data.List                        (isSuffixOf)
 import qualified Data.Map.Strict                  as M
 import           Data.Time.Calendar
+import           Domain.ReservationDomain
+import           InterfacesAdapters.Config
+import           InterfacesAdapters.KVSFileServer
 import           Polysemy
 import           Polysemy.Error
-import           Polysemy.State
-import           Polysemy.Trace                   (Trace, ignoreTrace, traceToIO)
 import           Polysemy.Input                   (Input, runInputConst)
-import           System.Directory                 (doesFileExist, listDirectory, removeFile)
-import           Data.List                        (isSuffixOf)
-
-import           UseCases.Config
+import           Polysemy.State
+import           Polysemy.Trace                   (Trace, ignoreTrace,
+                                                   traceToIO)
+import           System.Directory                 (doesFileExist, listDirectory,
+                                                   removeFile)
 import           UseCases.ReservationUseCase
-import           Domain.ReservationDomain
-import           InterfacesAdapters.KVSFileServer
 
 main :: IO ()
 main = hspec spec

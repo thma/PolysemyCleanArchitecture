@@ -13,6 +13,7 @@ import           Data.IORef
 import qualified Data.Map.Strict                 as M
 import           Data.Time.Calendar
 import           External.ReservationRestService
+import           InterfacesAdapters.Config
 import           InterfacesAdapters.KVSInMemory
 import           Network.HTTP.Types.Header       (hContentType)
 import           Network.HTTP.Types.Method       (methodDelete, methodPost)
@@ -26,7 +27,6 @@ import           Polysemy.Trace                  (ignoreTrace, traceToIO)
 import           Servant.Server
 import           Test.Hspec
 import           Test.Hspec.Wai
-import           UseCases.Config
 import           UseCases.ReservationUseCase
 
 

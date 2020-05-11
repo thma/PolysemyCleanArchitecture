@@ -10,19 +10,22 @@ module UseCases.ReservationUseCase
 )
 where
 
-import qualified Data.Map.Strict                 as M
-import           Data.Maybe                      (fromMaybe)
+import           Control.Monad            (when)
+import qualified Data.Map.Strict          as M
+import           Data.Maybe               (fromMaybe)
 import           Data.Time.Calendar
 import           Data.Time.Clock
+import qualified Domain.ReservationDomain as Dom (Reservation (..),
+                                                  ReservationMap (..),
+                                                  addReservation,
+                                                  availableSeats,
+                                                  cancelReservation,
+                                                  isReservationPossible)
 import           Polysemy
 import           Polysemy.Error
-import           Polysemy.Trace              (Trace, trace)
-import           Polysemy.Input              (Input, input)
-
-import qualified Domain.ReservationDomain as Dom (Reservation (..), ReservationMap (..), isReservationPossible, addReservation, cancelReservation, availableSeats)
-import           UseCases.KVS               (KVS, getKvs, insertKvs, listAllKvs)
-import           UseCases.Config
-import           Control.Monad (when)
+import           Polysemy.Input           (Input, input)
+import           Polysemy.Trace           (Trace, trace)
+import           UseCases.KVS             (KVS, getKvs, insertKvs, listAllKvs)
 
 {--
 This module specifies the Use Case layer for the Reservation system.
@@ -36,7 +39,7 @@ Implemented Use Cases:
 2. Enter a reservation for a given day and keep it persistent.
    If the reservation can not be served as all seats are occupies prode a functional error message stating
    the issue.
-   
+
 3. Delete a given reservation from the system in case of a cancellation.
    NO functional error is required if the reservation is not present in the system.
 
@@ -84,7 +87,7 @@ tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
   if Dom.isReservationPossible res todaysReservations maxCapacity
     then persistReservation res
     else throw $ ReservationNotPossible ("Sorry, only " ++ show availableSeats ++ " seats left on " ++ show date)
-    
+
   where
     -- | persist a reservation to the reservation table.
     persistReservation :: (Member (KVS Day [Dom.Reservation]) r, Member Trace r)  => Dom.Reservation -> Sem r ()
@@ -106,13 +109,13 @@ cancel res@(Dom.Reservation date _ _ _) = do
   let after = Dom.cancelReservation res reservations
   trace $ "after: " ++ show after
   insertKvs date after
-      
-  
+
+
 -- | list all entries from the key value store and return them as a ReservationMap
 -- | Implements UseCase 4.
 listAll :: (Member ReservationTable r, Member Trace r) => Sem r Dom.ReservationMap
 listAll = do
   trace "listing all reservation entries"
-  fmap M.fromList listAllKvs    
+  fmap M.fromList listAllKvs
 
 

@@ -1,16 +1,15 @@
 module InterfaceAdaptersSpec where
 
-import           Test.Hspec
-import           Data.Function                    ((&))
-import qualified Data.Map.Strict                  as M
+import           Data.Function                ((&))
+import qualified Data.Map.Strict              as M
+import           InterfacesAdapters.Config
+import           InterfacesAdapters.KVSSqlite
 import           Polysemy
 import           Polysemy.Error
+import           Polysemy.Input               (Input, runInputConst)
 import           Polysemy.Trace
-import           Polysemy.Input                   (Input, runInputConst)
-
+import           Test.Hspec
 import           UseCases.KVS
-import           InterfacesAdapters.KVSSqlite
-import           UseCases.Config
 
 main :: IO ()
 main = hspec spec
@@ -38,7 +37,8 @@ handleErrors e = do
 -- | a key value table mapping Int to a list of Strings
 type KeyValueTable = KVS Int [String]
 
-data Memo = Memo Int [String] deriving (Show)
+data Memo = Memo Int [String]
+    deriving (Show)
 
 persistEntry :: (Member KeyValueTable r)  => Memo -> Sem r ()
 persistEntry (Memo id lines ) = insertKvs id lines
