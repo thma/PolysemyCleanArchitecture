@@ -1,32 +1,31 @@
 module Main where
 
-import           Data.Function ((&))
-
-import qualified Network.Wai.Handler.Warp as Warp
+import           Control.Monad.Except
+import           Data.Aeson.Types                 (FromJSON, ToJSON)
+import           Data.ByteString.Lazy.Char8       (pack)
+import           Data.Function                    ((&))
+import qualified Data.Map.Strict                  as M
+import qualified Data.Map.Strict                  as M
+import           Data.Time.Calendar
+import           External.ReservationRestService
+import           InterfacesAdapters.Config
+import           InterfacesAdapters.KVSFileServer (runKvsAsFileServer)
+import           InterfacesAdapters.KVSSqlite     (runKvsAsSQLite)
+import qualified Network.Wai.Handler.Warp         as Warp
 import           Polysemy
 import           Polysemy.Error
-import           Polysemy.Trace (Trace, traceToIO)
-import           Polysemy.Input (Input, runInputConst)
-import           Data.Aeson.Types (ToJSON, FromJSON)
+import           Polysemy.Input                   (Input, runInputConst)
+import           Polysemy.Trace                   (Trace, traceToIO)
 import           Servant.Server
-import qualified Data.Map.Strict as M
-import           Control.Monad.Except
-import           Data.Time.Calendar
-import           Data.ByteString.Lazy.Char8 (pack)
-import qualified Data.Map.Strict                    as M
-
-import           UseCases.KVS               (KVS)
-import           InterfacesAdapters.KVSFileServer (runKvsAsFileServer)
-import           InterfacesAdapters.KVSSqlite (runKvsAsSQLite)
-import           External.ReservationRestService
+import           UseCases.KVS                     (KVS)
 import           UseCases.ReservationUseCase
-import           UseCases.Config
 
 
-selectBackend  :: Config -> (Show k, Read k, ToJSON v, FromJSON v) => Sem [KVS k v, Input Config, Error ReservationError, Trace, Embed IO] a -> Sem [Input Config, Error ReservationError, Trace, Embed IO] a
+--selectBackend  :: Config -> (Show k, Read k, ToJSON v, FromJSON v) => Sem [KVS k v, Input Config, Error ReservationError, Trace, Embed IO] a -> Sem [Input Config, Error ReservationError, Trace, Embed IO] a
 selectBackend config = case backend config of
   SQLite     -> runKvsAsSQLite
   FileServer -> runKvsAsFileServer
+  
 
 -- | creates the WAI Application that can be executed by Warp.run.
 -- All Polysemy interpretations must be executed here.
@@ -47,7 +46,7 @@ createApp config = do
 
 main :: IO ()
 main = do
-  let config = Config {maxCapacity = 20, port = 8080, backend = SQLite, dbPath = "kvs.db"} -- In real life this will be external configuration like commandline parameters or a configuration file.
+  let config = Config {port = 8080, backend = SQLite, dbPath = "kvs.db"} -- In real life this will be external configuration like commandline parameters or a configuration file.
   app  <- createApp config
   putStrLn $ "Starting server on port " ++ show (port config)
   Warp.run (port config) app
