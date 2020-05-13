@@ -30,10 +30,10 @@ This makes it easy to test them in isolation.
 
 -- | a data type representing a reservation
 data Reservation = Reservation
-    { date     :: Day    -- ^ the date of the reservation
+    { date     :: Day -- ^ the date of the reservation
     , name     :: String -- ^ the name of the guest placing the reservation
     , email    :: String -- ^ the email address of the guest
-    , quantity :: Int    -- ^ how many seats are requested
+    , quantity :: Int -- ^ how many seats are requested
     }
     deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 
@@ -51,8 +51,9 @@ isReservationPossible :: Reservation -> [Reservation] -> Int -> Bool
 isReservationPossible res@(Reservation date _ _ requestedSeats) reservationsOnDay maxCapacity =
   availableSeats maxCapacity reservationsOnDay >= requestedSeats
 
--- | computes the number of available seats for a list of reservations.
-availableSeats maxCapacity reservationsOnDay= maxCapacity - usedCapacity reservationsOnDay
+-- | computes the number of available seats from a maximum capacity and a list of reservations.
+availableSeats :: Int-> [Reservation] -> Int
+availableSeats maxCapacity reservations = maxCapacity - usedCapacity reservations
 
 -- | add a reservation to
 addReservation :: Reservation -> [Reservation] -> [Reservation]
