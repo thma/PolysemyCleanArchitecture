@@ -20,7 +20,7 @@ import           UseCases.ReservationUseCase
 main :: IO ()
 main = hspec spec
 
--- | Takes a program with effects and handles each effect till it gets reduced to [EitherÃ‚Â ReservationErrorÃ‚Â (ReservationMap,Ã‚Â a)]. No IO !
+-- | Takes a program with effects and handles each effect till it gets reduced to [Either ReservationError (ReservationMap‚ a)]. No IO !
 runPure :: ReservationMap
         -> (forall r. Members [Persistence, Error ReservationError, Trace, Input Config] r => Sem r a)
         -> [Either ReservationError (ReservationMap, a)]

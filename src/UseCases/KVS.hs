@@ -17,8 +17,6 @@ data KVS k v m a where
   InsertKvs  :: k -> v -> KVS k v m ()
   DeleteKvs  :: k -> KVS k v m ()
 
-
-
 -- | makeSem uses TemplateHaskell to generate effect functions (or smart Constructors) from the GADT definition:
 -- listAllKvs :: Member (KVS k v) r => Sem r [(k, v)]
 -- getKvs     :: Member (KVS k v) r => k -> Sem r (Maybe v)

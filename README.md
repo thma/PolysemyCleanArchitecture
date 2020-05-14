@@ -350,7 +350,62 @@ Thus `todaysReservations` is bound to the list of reservations that were retriev
 was found for `day`).
 
 Then we call the domain logic function `Dom.availableSeats` to compute the number of available seats.
-The resulting `Int` value lifted into the `Sem r` monad, thus matching the signature of the return type `Sem r Int`.
+The resulting `Int` value is lifted into the `Sem r` monad, thus matching the signature of the return type `Sem r Int`.
+
+The key value store function `getKvs` don't perform any concrete operation. They just `specify` access to
+an abstract key value store interface.
+
+The concrete interpretation of these calls happens later at run time. If we provide a *pure* interpretation
+(that is no IO) then the resulting code will also be pure.
+
+For example, in [UseCasePureSpec](test/UseCasePureSpec.hs) I'm providing pure interpretations 
+for all effects. For the key value store I'm using `runKvsPure` function from the 
+[KVSInMemory](src/InterfacesAdapters/KVSInMemory.hs) module.
+
+This allows writing tests in the same pure way as for the domain logic.
+
+## InterfacesAdapters
+
+> No code inward of this circle should know anything at all about the database. 
+> If the database is a SQL database, then all the SQL should be restricted to this layer, 
+> and in particular to the parts of this layer that have to do with the database.
+
+This layer holds code for adapters to external resources like databases, message queues, 
+configuration, Logging, etc.
+
+The Logging effect `Trace` ships with Polysemy, so we don't have to implement anything here.
+(Of course we could overzealously implement our own Graylog adapter here, 
+but I leave this as an exercise for the reader... )
+
+But as the `KVS` type is our own invention we have to provide our own implementations.
+
+The following code is the in-memory 
+implementation of the [KVSInMemory](src/InterfacesAdapters/KVSInMemory.hs) module.
+It defines a key-value store in term of `State (Map k v)` that is a `Map k v` in a `State` monad context:
+
+```haskell
+runKvsOnMapState :: ( Member (State (M.Map k v)) r, Ord k) 
+                 => Sem (KVS k v : r) a 
+                 -> Sem r a
+runKvsOnMapState = interpret $ \case
+  ListAllKvs    -> fmap M.toList get
+  GetKvs k      -> fmap (M.lookup k) get
+  InsertKvs k v -> modify $ M.insert k v
+  DeleteKvs k   -> modify $ M.delete k
+
+runKvsPure :: Ord k 
+           => M.Map k v
+           -> Sem (KVS k v : State (M.Map k v) : r) a 
+           -> Sem r (M.Map k v, a)
+runKvsPure map = runState map . runKvsOnMapState
+```
+
+  
+  
+  
+  
+> Also in this layer is any other adapter necessary to convert data from some external form, 
+> such as an external service, to the internal form used by the use cases and entities.
 
 
 ... tbc
