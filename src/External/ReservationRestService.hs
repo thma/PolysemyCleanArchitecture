@@ -12,7 +12,7 @@ import           Data.ByteString.Lazy.Char8 (pack)
 import           Polysemy
 import           Polysemy.Error
 
-import qualified UseCases.ReservationUseCase as UC (ReservationTable, ReservationError, listAll, tryReservation, fetch, cancel)
+import qualified UseCases.ReservationUseCase as UC (ReservationTable, ReservationError, listAll, tryReservation, fetch, cancel, availableSeats)
 import qualified Domain.ReservationDomain    as Dom (Reservation, ReservationMap)
 import Polysemy.Trace (Trace)
 import Polysemy.Input (Input)
@@ -36,6 +36,9 @@ type ReservationAPI =
   :<|> "reservations" :> Summary "cancel a reservation"
                       :> ReqBody '[ JSON] Dom.Reservation
                       :> Delete  '[ JSON] ()
+  :<|> "seats"        :> Summary "retrieve number of free seats for a given day"
+                      :> Capture "day" Day
+                      :> Get     '[ JSON] Int
 
 -- | implements the ReservationAPI
 reservationServer :: (Member UC.ReservationTable r, Member (Error UC.ReservationError) r, Member Trace r, Member (Input Config) r) => ServerT ReservationAPI (Sem r)
@@ -44,6 +47,7 @@ reservationServer =
   :<|>  UC.fetch          -- GET    /reservations/YYYY-MM-DD  
   :<|>  UC.tryReservation -- POST   /reservations
   :<|>  UC.cancel         -- DELETE /reservations
+  :<|>  UC.availableSeats -- GET    /seats/YYYY-MM-DD
 
 -- | boilerplate needed to guide type inference
 reservationAPI :: Proxy ReservationAPI

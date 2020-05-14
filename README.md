@@ -27,12 +27,13 @@ Then I tried to apply the *final tagless* pattern for the persistence layer. Thi
 persistence layer and writing controller tests with a mocked persistence backend.
 But when it came to testing the REST API handlers (written with Servant) I was again stuck in the IO Monad as the Handler type is defined as 
 `newtype Handler a = Handler { runHandler' :: ExceptT ServerError IO a }`.
+Maybe it's not a principle issue but just my brain being too small...
 
 I was desperately looking for something that allowed me to combine different types of effects 
 (like persistence, logging, configuration, http handlers, error handling, etc.) in controllers and handlers but still to be able to
 write tests that allow using mocks and stubs.
 
-As I was stuck with the mtl based code I had a look at some of the *algebraic effect systems* available in Haskell, like 
+As I reached a dead end, I had a look at some of the *algebraic effect systems* available in Haskell, like 
 eff, extensible-effects, fused-effects, freer-simple and Polysemy. 
 
 In algebraic effect systems, effectful programs are split into two separate parts: 
@@ -50,6 +51,7 @@ I'm pretty satisfied with the result, and of course I'm eager to share my approa
 A very small boutique restaurant (serving excellent vietnamese food) is looking for a reservation system that allows managing reservations.
 The restaurant has only twenty seats, they also take only a maximum of twenty reservations per day. (So guests can stay 
 the whole evening and don't have to leave after some time.)
+(I adopted this scenario from a inspiring [talk by Mark Seemann](https://youtu.be/US8QG9I1XW0))
 
 They have asked us to write the REST backend for their reservation system.
 
@@ -119,10 +121,11 @@ The components in the outer circles will then implement this interface. Using th
 it is possible to communicate accross the boundaries of the layers but still maintain a strict separation of
 concerns. 
 
-If you want tp dive deeper into the clean architecture I recommend the
+If you want to dive deeper into clean architecture I recommend the
 [Clean Architecture blog post](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-as an entry point. Robert C. Martin later published a whole book [Clean Architecture: A Craftsman's Guide to Software Structure and Design](https://www.amazon.com/Clean-Architecture-Craftsmans-Software-Structure/dp/0134494164) 
-devoted on this concept.
+as an entry point. Robert C. Martin later also published a whole book 
+[Clean Architecture: A Craftsman's Guide to Software Structure and Design](https://www.amazon.com/Clean-Architecture-Craftsmans-Software-Structure/dp/0134494164) 
+on this concept.
 
 In the following section I'll explain how the clean architecture guidelines can be implemented in a 
 Haskell REST API application.

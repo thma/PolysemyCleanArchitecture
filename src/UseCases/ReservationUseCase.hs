@@ -3,6 +3,7 @@ module UseCases.ReservationUseCase
 , fetch
 , tryReservation
 , cancel
+, availableSeats
 , ReservationTable (..)
 , ReservationError (..)
 , Dom.Reservation (..)
@@ -26,6 +27,7 @@ import           Polysemy.Error
 import           Polysemy.Input           (Input, input)
 import           Polysemy.Trace           (Trace, trace)
 import           UseCases.KVS             (KVS, getKvs, insertKvs, listAllKvs)
+import           Data.Aeson.Types (ToJSON, FromJSON)
 
 {--
 This module specifies the Use Case layer for the Reservation system.
@@ -34,16 +36,18 @@ The module exposes service functions that will be used by the REST API in the Ex
 
 Implemented Use Cases:
 
-1. Display the list of reservations for a given day.
+1. Display the number of available seats for a given day
 
 2. Enter a reservation for a given day and keep it persistent.
    If the reservation can not be served as all seats are occupies prode a functional error message stating
    the issue.
 
-3. Delete a given reservation from the system in case of a cancellation.
+3. Display the list of reservations for a given day.
+
+4. Delete a given reservation from the system in case of a cancellation.
    NO functional error is required if the reservation is not present in the system.
 
-4. Display a List of all reservation in the system.
+5. Display a List of all reservation in the system.
 
 
 All Effects are specified as Polysemy Members.
@@ -53,6 +57,9 @@ Interpretation of Effects is implemented on the level of application assembly, o
 Please note: all functions in this module are pure and total functions.
 This makes it easy to test them in isolation.
 --}
+
+instance ToJSON Dom.Reservation
+instance FromJSON Dom.Reservation
 
 -- | ReservationTable holds a list of reservations for each date
 type ReservationTable = KVS Day [Dom.Reservation]
@@ -118,4 +125,9 @@ listAll = do
   trace "listing all reservation entries"
   fmap M.fromList listAllKvs
 
-
+availableSeats :: (Member ReservationTable r, Member Trace r) => Day -> Sem r Int
+availableSeats day = do
+  trace $ "compute available seats for " ++ show day
+  maybeList <- getKvs day
+  let todaysReservations = fromMaybe [] maybeList
+  return $ Dom.availableSeats maxCapacity todaysReservations

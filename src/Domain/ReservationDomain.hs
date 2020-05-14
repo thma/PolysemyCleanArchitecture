@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric  #-}
 module Domain.ReservationDomain
 ( Reservation (..)
@@ -30,12 +29,12 @@ This makes it easy to test them in isolation.
 
 -- | a data type representing a reservation
 data Reservation = Reservation
-    { date     :: Day -- ^ the date of the reservation
+    { date     :: Day    -- ^ the date of the reservation
     , name     :: String -- ^ the name of the guest placing the reservation
     , email    :: String -- ^ the email address of the guest
-    , quantity :: Int -- ^ how many seats are requested
+    , quantity :: Int    -- ^ how many seats are requested
     }
-    deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
+    deriving (Eq, Generic, Read, Show)
 
 -- | a key value map holding a list of reservations for any given day
 type ReservationMap = M.Map Day [Reservation]
