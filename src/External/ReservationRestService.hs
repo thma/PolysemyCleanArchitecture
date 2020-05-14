@@ -1,26 +1,29 @@
+{-# LANGUAGE BlockArguments       #-}
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE BlockArguments       #-}
 module External.ReservationRestService where
 
-import           Servant
-import           Control.Monad.IO.Class     (liftIO)
-import           Data.ByteString.Lazy.Char8 (pack)
+import           Control.Error               (fromMaybe)
+import           Control.Monad.IO.Class      (liftIO)
+import           Data.Aeson.Types            (FromJSON, ToJSON)
+import           Data.ByteString.Lazy.Char8  (pack)
+import           Data.Time.Calendar          (Day)
+import qualified Domain.ReservationDomain    as Dom (Reservation,
+                                                     ReservationMap)
+import           InterfacesAdapters.Config   (Config)
 import           Polysemy
 import           Polysemy.Error
-
-import qualified UseCases.ReservationUseCase as UC (ReservationTable, ReservationError, listAll, tryReservation, fetch, cancel, availableSeats)
-import qualified Domain.ReservationDomain    as Dom (Reservation, ReservationMap)
-import Polysemy.Trace (Trace)
-import Polysemy.Input (Input)
-import InterfacesAdapters.Config (Config)
-import Data.Time.Calendar (Day)
-import Control.Error (fromMaybe)
-
-import           Data.Aeson.Types (ToJSON, FromJSON)
+import           Polysemy.Input              (Input)
+import           Polysemy.Trace              (Trace)
+import           Servant
+import qualified UseCases.ReservationUseCase as UC (ReservationError,
+                                                    ReservationTable,
+                                                    availableSeats, cancel,
+                                                    fetch, listAll,
+                                                    tryReservation)
 
 instance ToJSON Dom.Reservation
 instance FromJSON Dom.Reservation
@@ -29,7 +32,7 @@ instance FromJSON Dom.Reservation
 type ReservationAPI =
        "reservations" :> Summary "retrieve a map of all reservations (Day -> [Reservation])"
                       :> Get     '[ JSON] Dom.ReservationMap
-                      
+
   :<|> "reservations" :> Summary "retrieve list of reservations for a given day"
                       :> Capture "day" Day
                       :> Get     '[ JSON] [Dom.Reservation]
@@ -37,10 +40,11 @@ type ReservationAPI =
   :<|> "reservations" :> Summary "place a new reservation"
                       :> ReqBody '[ JSON] Dom.Reservation
                       :> Post    '[ JSON] ()
-                      
+
   :<|> "reservations" :> Summary "cancel a reservation"
                       :> ReqBody '[ JSON] Dom.Reservation
                       :> Delete  '[ JSON] ()
+                      
   :<|> "seats"        :> Summary "retrieve number of free seats for a given day"
                       :> Capture "day" Day
                       :> Get     '[ JSON] Int
@@ -49,7 +53,7 @@ type ReservationAPI =
 reservationServer :: (Member UC.ReservationTable r, Member (Error UC.ReservationError) r, Member Trace r, Member (Input Config) r) => ServerT ReservationAPI (Sem r)
 reservationServer =
         UC.listAll        -- GET    /reservations
-  :<|>  UC.fetch          -- GET    /reservations/YYYY-MM-DD  
+  :<|>  UC.fetch          -- GET    /reservations/YYYY-MM-DD
   :<|>  UC.tryReservation -- POST   /reservations
   :<|>  UC.cancel         -- DELETE /reservations
   :<|>  UC.availableSeats -- GET    /seats/YYYY-MM-DD
