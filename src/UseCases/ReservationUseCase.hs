@@ -4,7 +4,7 @@ module UseCases.ReservationUseCase
 , tryReservation
 , cancel
 , availableSeats
-, ReservationTable (..)
+, Persistence (..)
 , ReservationError (..)
 , Dom.Reservation (..)
 , Dom.ReservationMap (..)
@@ -58,30 +58,20 @@ This makes it easy to test them in isolation.
 --}
 
 
--- | ReservationTable holds a list of reservations for each date
-type ReservationTable = KVS Day [Dom.Reservation]
+-- | Persistence is a key/value store Day / [Reservation]
+type Persistence = KVS Day [Dom.Reservation]
 
 -- | The functional error, raised if a reservation is not possible
 newtype ReservationError = ReservationNotPossible String deriving (Show, Eq)
 
-
 -- | compute the number of available seats for a given day.
 -- | Implements UseCase 1.
-availableSeats :: (Member ReservationTable r, Member Trace r) => Day -> Sem r Int
+availableSeats :: (Member Persistence r, Member Trace r) => Day -> Sem r Int
 availableSeats day = do
   trace $ "compute available seats for " ++ show day
   maybeList <- getKvs day
   let todaysReservations = fromMaybe [] maybeList
   return $ Dom.availableSeats maxCapacity todaysReservations
-
--- | fetch the list of reservations for a given day from the key value store.
--- | If no match is found, Nothings is returned, else the Result wrapped with Just.
--- | Implements UseCase 1.
-fetch :: (Member ReservationTable r, Member Trace r) => Day -> Sem r [Dom.Reservation]
-fetch day = do
-  trace $ "fetch reservations for " ++ show day
-  maybeList <- getKvs day
-  return $ fromMaybe [] maybeList
 
 -- | the maximum capacity of the restaurant.
 -- | to keep things simple this just a constant value of 20.
@@ -92,7 +82,7 @@ maxCapacity = 20
 -- | try to add a reservation to the table.
 -- | Return Just the modified table if successful, else return Nothing
 -- | implements UseCase 2.
-tryReservation :: (Member ReservationTable r, Member (Error ReservationError) r, Member Trace r) => Dom.Reservation -> Sem r ()
+tryReservation :: (Member Persistence r, Member (Error ReservationError) r, Member Trace r) => Dom.Reservation -> Sem r ()
 tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
   trace $ "trying to reservate " ++ show requestedQuantity ++ " more seats on " ++ show date
   todaysReservations <- fetch date
@@ -111,9 +101,17 @@ tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
       trace $ "storing: " ++ show updated
       insertKvs date updated
 
+-- | fetch the list of reservations for a given day from the key value store.
+-- | If no match is found, Nothings is returned, else the Result wrapped with Just.
+-- | Implements UseCase 3.
+fetch :: (Member Persistence r, Member Trace r) => Day -> Sem r [Dom.Reservation]
+fetch day = do
+  trace $ "fetch reservations for " ++ show day
+  maybeList <- getKvs day
+  return $ fromMaybe [] maybeList
 
 -- | cancel a reservation, that is: delete it from the system.
--- | Implements UseCase 3.
+-- | Implements UseCase 4.
 cancel :: (Member (KVS Day [Dom.Reservation]) r, Member Trace r)  => Dom.Reservation -> Sem r ()
 cancel res@(Dom.Reservation date _ _ _) = do
   trace $ "deleting reservation " ++ show res
@@ -125,8 +123,8 @@ cancel res@(Dom.Reservation date _ _ _) = do
 
 
 -- | list all entries from the key value store and return them as a ReservationMap
--- | Implements UseCase 4.
-listAll :: (Member ReservationTable r, Member Trace r) => Sem r Dom.ReservationMap
+-- | Implements UseCase 5.
+listAll :: (Member Persistence r, Member Trace r) => Sem r Dom.ReservationMap
 listAll = do
   trace "listing all reservation entries"
   fmap M.fromList listAllKvs

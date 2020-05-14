@@ -20,11 +20,12 @@ import           Polysemy.Input              (Input)
 import           Polysemy.Trace              (Trace)
 import           Servant
 import qualified UseCases.ReservationUseCase as UC (ReservationError,
-                                                    ReservationTable,
+                                                    Persistence,
                                                     availableSeats, cancel,
                                                     fetch, listAll,
                                                     tryReservation)
-
+                                                    
+-- | in order to allow JSON serialization for the Dom.Reservation type, it must instaniate FromJSON and ToJSON.
 instance ToJSON Dom.Reservation
 instance FromJSON Dom.Reservation
 
@@ -50,7 +51,7 @@ type ReservationAPI =
                       :> Get     '[ JSON] Int
 
 -- | implements the ReservationAPI
-reservationServer :: (Member UC.ReservationTable r, Member (Error UC.ReservationError) r, Member Trace r, Member (Input Config) r) => ServerT ReservationAPI (Sem r)
+reservationServer :: (Member UC.Persistence r, Member (Error UC.ReservationError) r, Member Trace r, Member (Input Config) r) => ServerT ReservationAPI (Sem r)
 reservationServer =
         UC.listAll        -- GET    /reservations
   :<|>  UC.fetch          -- GET    /reservations/YYYY-MM-DD

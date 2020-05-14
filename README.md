@@ -144,6 +144,8 @@ results for all possible input values).
 
 This makes it easy to test them in isolation. 
 
+At the core of our Domain lies the `Reservation` data type:
+
 ```haskell
 -- | a data type representing a reservation
 data Reservation = Reservation
@@ -152,32 +154,61 @@ data Reservation = Reservation
     , email    :: String -- ^ the email address of the guest
     , quantity :: Int    -- ^ how many seats are requested
     }
-    deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
+    deriving (Eq, Generic, Read, Show)
+```
 
+This type can be used to express facts like *Mr. Miller reserved two seats on 2020-06-01, 
+he can be reached via his email address: manfred@miller.com*:
+
+```haskell
+reservation = Reservation {name = "Mr. Miller", quantity = 2, date = read "2020-06-01", email = "manfred@miller.com"}
+```
+
+All reservations of a specific day are represented as a list of reservations: `[Reservation]`.
+
+A `ReservationMap` is a map from `Day` to `[Reservation]`:
+
+```haskell
 -- | a key value map holding a list of reservations for any given day
-type ReservationMap = M.Map Day [Reservation]
+type ReservationMap = Map Day [Reservation]
+```
 
+That is, we can keep track of all reservations by maintaining them in such a map:
+
+```haskell
+fromList 
+  [
+    (
+      2020-06-01,
+        [
+          Reservation {date = 2020-06-01, name = "Mr. Miller", email = "manfred@miller.com", quantity = 2}, 
+          Reservation {date = 2020-06-01, name = "Andrew M. Jones", email = "amjones@example.com", quantity = 4}
+        ]
+    )
+  ]
+```
+
+Based on these data types we can define domain logic like computing the used capacity of a list of reservations:
+
+```haskell
 -- | computes the number of reserved seats for a list of reservations
 usedCapacity :: [Reservation] -> Int
 usedCapacity [] = 0
 usedCapacity (Reservation _ _ _ quantity : rest) = quantity + usedCapacity rest
+```
 
--- | check whether it is possible to add a reservation to the table.
--- | Return True if successful, else return False
-isReservationPossible :: Reservation -> [Reservation] -> Int -> Bool
-isReservationPossible res@(Reservation date _ _ requestedSeats) reservations maxCapacity =
-  availableSeats maxCapacity reservations >= requestedSeats
+Based on this we can compute the number of available seats (given a maximum capacity and a list of reservations):
 
+```haskell
 -- | computes the number of available seats from a maximum capacity and a list of reservations.
 availableSeats :: Int-> [Reservation] -> Int
 availableSeats maxCapacity reservations = maxCapacity - usedCapacity reservations
-
--- | add a reservation to
-addReservation :: Reservation -> [Reservation] -> [Reservation]
-addReservation r rs = r:rs
 ```
 
-The `Reservation` data type and some of the functions are depicted in the in the inner **Domain** circle of the following
+As already mentioned: this layer has no knowledge of the world, it's all pure code.
+Testing this is straight forward, as you can see from the [DomainSpec](test/DomainSpec.hs) code.
+
+The `Reservation` data type and some of the domain logic functions are depicted in the in the inner **Domain** circle of the following
 diagram:
 
 ![The Reservation System architecture](clean-architecture.png)
@@ -196,26 +227,134 @@ The module exposes service functions that will be used by the REST API in the Ex
 
 Implemented Use Cases:
 
-1. Display the list of reservations for a given day.
+1. Display the number of available seats for a given day
 
 2. Enter a reservation for a given day and keep it persistent.
-   If the reservation can not be served as all seats are occupies, provide a functional error message stating
+   If the reservation can not be served as all seats are occupies prode a functional error message stating
    the issue.
 
-3. Delete a given reservation from the system in case of a cancellation.
+3. Display the list of reservations for a given day.
+
+4. Delete a given reservation from the system in case of a cancellation.
    NO functional error is required if the reservation is not present in the system.
 
-4. Display a List of all reservation in the system.
+5. Display a List of all reservation in the system.
+
+In the Use Case layer we have left the garden Eden of *world agnostic* code:
+
+In order to compute the number of available seats for a given day, we will have to
+first look up the actual reservations for that day from a persistent storage, 
+and only then can we call the domain function `availableSeats`.
+In addition we also will have to write a Log message when calling the functions
+to provide an audit trail.
+
+The dependency rule of clean architecture bans all direct access to a database or a 
+logging-infrastructure from the use case layer.
+
+**So how can we define such a use case without violating the dependency rule?**
+
+Algebraic Effect systems offer a consistent answer: 
+1. We *specify* the usage of effects (that is things from the outer layers) in the use case layer,
+   using an abstract interface. The interface will also be defined in the use case layer.
+2. We provide a *interpretations* (or a *semantics*) of these effects only in the outer layers.
+   This also allows us to provide different implementations. This is useful for swapping backends,
+   e.g. migrating from MySQL to PostgreSQL, and it can be used to provide mock implementations
+   for testing purposes.
+
+Let's see how this looks like when using Polysemy to specify effects:
+
+```haskell
+-- | compute the number of available seats for a given day.
+availableSeats :: (Member Persistence r, Member Trace r) => Day -> Sem r Int
+availableSeats day = do
+  trace $ "compute available seats for " ++ show day
+  maybeList <- getKvs day
+  let todaysReservations = fromMaybe [] maybeList
+  return $ Dom.availableSeats maxCapacity todaysReservations
+
+-- | the maximum capacity of the restaurant.
+maxCapacity :: Int
+maxCapacity = 20
+```
+
+The type signature of `availableSeats` contains two constraints on the *effect stack* type `r`: `(Member ReservationTable r, Member Trace r)`
+This means that the function may perform two different effects: persistence via the `Persistence` effect and 
+Logging via the `Trace` effect.
+
+The type signature also specifies that we need an input of type `Day` and will return the `Int` result
+wrapped in the `Sem r` monad.
+
+The `Sem` monad handles computations of arbitrary extensible effects.
+A value of type `Sem r` describes a program with the capabilities of the effect stack `r`.
+
+The first step of the function body of `availableSeats` specifies a Log action based on the (Polysemy built-in) 
+`Trace` effect:
+
+```haskell
+  trace $ "compute available seats for " ++ show day
+```
+
+I repeat: `trace ` does not directly do any logging. The actual logging action is defined in the application 
+assembly or in a test setup.
+
+The next line specify a lookup of the reservation list for `day` from the persistence layer:
+
+```haskell
+  maybeList <- getKvs day
+```
+
+To understand this line we first have to know the definition of the `Persistence` effect:
+
+```haskell
+type Persistence = KVS Day [Dom.Reservation]
+```
+Where KVS (standing for Key/Value Store) is a type that is 
+[also defined in the use case layer](src/UseCases/KVS.hs):
+
+```haskell
+-- | a key value store specified as a GADT
+data KVS k v m a where
+  ListAllKvs :: KVS k v m [(k, v)]
+  GetKvs     :: k -> KVS k v m (Maybe v)
+  InsertKvs  :: k -> v -> KVS k v m ()
+  DeleteKvs  :: k -> KVS k v m ()
+
+makeSem ''KVS
+```
+
+The four operations of the key value store are defined in the GADT as type constructors.
+`makeSem ''KVS` then uses TemplateHaskell to generate effect functions (or smart Constructors) from the GADT definition.
+This call results in the definition of the following four functions that represent the specific operations of the key value store:
+
+```haskell
+listAllKvs :: Member (KVS k v) r => Sem r [(k, v)]
+getKvs     :: Member (KVS k v) r => k -> Sem r (Maybe v)
+insertKvs  :: Member (KVS k v) r => k -> v -> Sem r ()
+deleteKvs  :: Member (KVS k v) r => k -> Sem r ()
+```
+
+These functions can be used in the `Sem` Monad. So now we understand much better what happens in `availableSeats`:
+
+```haskell
+availableSeats :: (Member Persistence r, Member Trace r) => Day -> Sem r Int
+availableSeats day = do
+  ...
+  maybeList <- getKvs day
+  let todaysReservations = fromMaybe [] maybeList
+  return $ Dom.availableSeats maxCapacity todaysReservations
+```
+
+As `availableSeats` operates in the `Sem` monad, `maybeList` is bound to a `Maybe [Dom.Reservation]` value, 
+which results from the `getKVs day` action.
+Thus `todaysReservations` is bound to the list of reservations that were retrieved (or `[]` in case `Nothing`
+was found for `day`).
+
+Then we call the domain logic function `Dom.availableSeats` to compute the number of available seats.
+The resulting `Int` value lifted into the `Sem r` monad, thus matching the signature of the return type `Sem r Int`.
 
 
-All Effects are specified as Polysemy Members.
-
-Interpretation of Effects is implemented on the level of application assembly, or in the context of unit tests.
-
-Please note: all functions in this module are pure and total functions.
-This makes it easy to test them in isolation.
-
-
+... tbc
+----
 
 ## Conclusion
 > Conforming to these simple rules is not hard, and will save you a lot of headaches going forward. 

@@ -22,7 +22,7 @@ main = hspec spec
 
 -- | Takes a program with effects and handles each effect till it gets reduced to [EitherÃ‚Â ReservationErrorÃ‚Â (ReservationMap,Ã‚Â a)]. No IO !
 runPure :: ReservationMap
-        -> (forall r. Members [ReservationTable, Error ReservationError, Trace, Input Config] r => Sem r a)
+        -> (forall r. Members [Persistence, Error ReservationError, Trace, Input Config] r => Sem r a)
         -> [Either ReservationError (ReservationMap, a)]
 runPure kvsMap program =
   program
@@ -63,7 +63,7 @@ runCancel kvsMap res = do
 initReservations :: ReservationMap
 initReservations = M.singleton day res
 
-day = fromGregorian 2020 5 2
+day = read "2020-05-02"
 res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
 
 spec :: Spec

@@ -22,14 +22,13 @@ import           System.Directory                 (doesFileExist, listDirectory,
 import           UseCases.ReservationUseCase
 import           Data.Aeson.Types (ToJSON, FromJSON)
 
-instance ToJSON Reservation
-instance FromJSON Reservation
+
 
 main :: IO ()
 main = hspec spec
 
 -- | Takes a program with effects and handles each effect till it gets reduced to IO a.
-runAllEffects :: (forall r. Members [ReservationTable, Error ReservationError, Trace, Input Config] r => Sem r a) -> IO a
+runAllEffects :: (forall r. Members [Persistence, Error ReservationError, Trace, Input Config] r => Sem r a) -> IO a
 runAllEffects program =
   program
     & runKvsAsFileServer
@@ -39,6 +38,10 @@ runAllEffects program =
     & runM
     & handleErrors
   where config = Config {port = 8080, dbPath = "kvs.db", backend = FileServer}
+
+-- | the FileServer implementation of KVS works with JSON serialization, thus Reservation must instantiate ToJSON and FromJSON
+instance ToJSON Reservation
+instance FromJSON Reservation
 
 -- errors are rethrown as Runtime errors, which can be verified by HSpec.
 handleErrors :: IO (Either ReservationError a) -> IO a

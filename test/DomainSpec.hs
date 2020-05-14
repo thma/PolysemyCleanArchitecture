@@ -23,6 +23,9 @@ spec =
 
     it "computes the used capacity for a list of reservations" $
       usedCapacity [res1, res2] `shouldBe` 7
+      
+    it "computes the available seats for a list of reservations" $
+      availableSeats totalCapacity [res1, res2] `shouldBe` 13
 
     it "can check if a reservation is possible on a given day" $ 
       isReservationPossible (Reservation day "name" "mail@mail.com" 8) reservations  totalCapacity `shouldBe` True
