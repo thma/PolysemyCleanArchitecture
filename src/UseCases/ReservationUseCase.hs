@@ -27,7 +27,6 @@ import           Polysemy.Error
 import           Polysemy.Input           (Input, input)
 import           Polysemy.Trace           (Trace, trace)
 import           UseCases.KVS             (KVS, getKvs, insertKvs, listAllKvs)
-import           Data.Aeson.Types (ToJSON, FromJSON)
 
 {--
 This module specifies the Use Case layer for the Reservation system.
@@ -58,8 +57,6 @@ Please note: all functions in this module are pure and total functions.
 This makes it easy to test them in isolation.
 --}
 
-instance ToJSON Dom.Reservation
-instance FromJSON Dom.Reservation
 
 -- | ReservationTable holds a list of reservations for each date
 type ReservationTable = KVS Day [Dom.Reservation]
@@ -67,6 +64,15 @@ type ReservationTable = KVS Day [Dom.Reservation]
 -- | The functional error, raised if a reservation is not possible
 newtype ReservationError = ReservationNotPossible String deriving (Show, Eq)
 
+
+-- | compute the number of available seats for a given day.
+-- | Implements UseCase 1.
+availableSeats :: (Member ReservationTable r, Member Trace r) => Day -> Sem r Int
+availableSeats day = do
+  trace $ "compute available seats for " ++ show day
+  maybeList <- getKvs day
+  let todaysReservations = fromMaybe [] maybeList
+  return $ Dom.availableSeats maxCapacity todaysReservations
 
 -- | fetch the list of reservations for a given day from the key value store.
 -- | If no match is found, Nothings is returned, else the Result wrapped with Just.
@@ -125,9 +131,4 @@ listAll = do
   trace "listing all reservation entries"
   fmap M.fromList listAllKvs
 
-availableSeats :: (Member ReservationTable r, Member Trace r) => Day -> Sem r Int
-availableSeats day = do
-  trace $ "compute available seats for " ++ show day
-  maybeList <- getKvs day
-  let todaysReservations = fromMaybe [] maybeList
-  return $ Dom.availableSeats maxCapacity todaysReservations
+

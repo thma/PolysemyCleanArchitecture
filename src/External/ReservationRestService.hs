@@ -20,6 +20,11 @@ import InterfacesAdapters.Config (Config)
 import Data.Time.Calendar (Day)
 import Control.Error (fromMaybe)
 
+import           Data.Aeson.Types (ToJSON, FromJSON)
+
+instance ToJSON Dom.Reservation
+instance FromJSON Dom.Reservation
+
 -- | REST api for Restaurant Reservations
 type ReservationAPI =
        "reservations" :> Summary "retrieve a map of all reservations (Day -> [Reservation])"

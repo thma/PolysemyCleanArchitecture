@@ -20,6 +20,10 @@ import           Polysemy.Trace                   (Trace, ignoreTrace,
 import           System.Directory                 (doesFileExist, listDirectory,
                                                    removeFile)
 import           UseCases.ReservationUseCase
+import           Data.Aeson.Types (ToJSON, FromJSON)
+
+instance ToJSON Reservation
+instance FromJSON Reservation
 
 main :: IO ()
 main = hspec spec
