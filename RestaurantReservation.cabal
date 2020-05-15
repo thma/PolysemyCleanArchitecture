@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ea689d4106deec07fb98671534b4b1dbcf0086766df9c5fce67875268482a98f
+-- hash: cad6765af02f84a4ad1b5b1b2c247848960a28c39c528fce4f882bf0f405f98b
 
 name:           RestaurantReservation
 version:        0.1.0.0
@@ -27,7 +27,7 @@ source-repository head
 library
   exposed-modules:
       Domain.ReservationDomain
-      External.ReservationRestService
+      ExternalInterfaces.ReservationRestService
       InterfaceAdapters.Config
       InterfaceAdapters.KVSFileServer
       InterfaceAdapters.KVSInMemory
@@ -96,7 +96,7 @@ test-suite RestaurantReservation-test
   main-is: Spec.hs
   other-modules:
       DomainSpec
-      ExternalSpec
+      ExternalInterfacesSpec
       InterfaceAdaptersSpec
       UseCaseIOSpec
       UseCasePureSpec

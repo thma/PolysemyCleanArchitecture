@@ -25,23 +25,24 @@ runPure :: ReservationMap
         -> [Either UC.ReservationError (ReservationMap, a)]
 runPure kvsMap program =
   program
-     & runKvsPure kvsMap
-     & runError @UC.ReservationError
-     & ignoreTrace
-     & runM
+     & runKvsPure kvsMap              -- run the key-value store on a simple ReservationMap
+     & runError @UC.ReservationError  -- run error handling to produce an Either UC.ReservationError (ReservationMap, a)
+     & ignoreTrace                    -- run Trace by simply ignoring all messages 
+     & runM                           -- wrap everything in a monadic type, [] in this case
 
 -- Helper functions for interpreting all effects in a pure way. That is no IO !
-runTryReservation :: ReservationMap -> Reservation -> Maybe ReservationMap
-runTryReservation kvsMap res = do
-  case runPure kvsMap (UC.tryReservation res) of
-    [Right (m, ())] -> Just m
-    [Left err]      -> Nothing
 
 runAvailableSeats :: ReservationMap -> Day -> Int
 runAvailableSeats kvsMap day = do
   case runPure kvsMap (UC.availableSeats day) of
     [Right (_, numSeats)] -> numSeats
-    [Left err]            -> error "fetch failed"
+    [Left err]            -> error "availableSeats failed"
+
+runTryReservation :: ReservationMap -> Reservation -> Maybe ReservationMap
+runTryReservation kvsMap res = do
+  case runPure kvsMap (UC.tryReservation res) of
+    [Right (m, ())] -> Just m
+    [Left err]      -> Nothing
 
 runFetch :: ReservationMap -> Day -> [Reservation]
 runFetch kvsMap day = do

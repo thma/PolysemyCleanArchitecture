@@ -96,7 +96,7 @@ The architecture consists of four layers, each of which contains components with
    In particular they use entities and logic from the domain layer to implement use cases.
 3. The **Interface Adapters** layer holds code for UI controllers and presenters as well as adapters to external 
    resources like databases, message queues, configuration, Logging, etc.
-4. The **External** layer contains the technical implementation of external interfaces. For example,
+4. The **ExternalInterfaces** layer contains the technical implementation of external interfaces. For example,
    a conrete REST service assembly, Web and UI infrastructure, databases, etc. 
  
  ### The Dependency Rule
@@ -247,7 +247,7 @@ spec =
 
 The module [ReservationUseCase](src/UseCases/ReservationUseCase.hs) specifies the available use cases for the reservation system.
 It coordinates access to Effects and the actual domain logic.
-The module exposes service functions that will be used by the REST API in the External layer.
+The module exposes service functions that will be used by the REST API in the ExternalInterfaces layer.
 
 Implemented Use Cases:
 
@@ -278,14 +278,16 @@ logging-infrastructure from the use case layer.
 ### How can we define such a use case without violating the dependency rule?
 
 Algebraic Effect systems offer a consistent answer: 
-1. We *specify* the usage of effects (that is things from the outer layers) in the use case layer,
-   using an abstract interface. The interface will also be defined in the use case layer.
-2. We provide a *interpretations* (or a *semantics*) of these effects only in the outer layers.
-   This also allows us to provide different implementations. This is useful for swapping backends,
-   e.g. migrating from MySQL to PostgreSQL, and it can be used to provide mock implementations
-   for testing purposes.
+1. We **declaration effects** in the use case layer by defining them as an abstract interface.
+2. We also specify the actual **usage of effects** in the use case layer by having calls against the abstract interface.
+3. We provide an **interpretation** of these effects only in the outer layers.
+   This also allows us to provide different implementations. 
+   So we can easily swap backends, e.g. migrating from MySQL to PostgreSQL, 
+   and it can be used to provide mock implementations for testing purposes.
 
-Let's see how this looks like when using Polysemy to specify effects:
+Let's see how this looks like when using Polysemy to specify effects.
+
+### Usage of effects
 
 ```haskell
 -- | compute the number of available seats for a given day.
@@ -343,6 +345,8 @@ fetch day = do
   maybeList <- getKvs day
   return $ fromMaybe [] maybeList
 ```
+
+### declaration of effects
 
 To understand the `fetch` function, in particular the expression `maybeList <- getKvs day` we first have to know the 
 definition of the `Persistence` effect:
@@ -402,49 +406,68 @@ coordinate all activities and resources to fulfill a specific use case.
 On the right we see the gateway (or interface) code like the `KVS` abstraction of a key-value store or the `fetch` 
 operation that wraps the access to the key-value store.
 
-
 ![Use Cases layer](use-cases.png)
 
-### Testing
+### Interpretation of effects / Testing
 
-
-
-The key value store functions like `getKvs` don't perform any concrete operation. They just `specify` access to
-an abstract key value store interface.
+The key value store functions like `getKvs` don't perform any concrete operation. They just `declare` access to
+an abstract key-value store interface.
 
 The concrete interpretation of these calls will be specified in the application assembly (typically in `Main.hs`) or
 in the setup code of test cases.
-If we provide a *pure* interpretation (that is no IO) then the resulting code will also be pure. 
+If we provide a *pure* interpretation then the resulting code will also be pure. 
 This allows writing tests in the same pure way as for the domain logic.
 
-For example, in [UseCasePureSpec](test/UseCasePureSpec.hs) I'm providing pure interpretations 
-for all effects. For the key value store I'm using `runKvsPure` function from the 
-[KVSInMemory](src/InterfaceAdapters/KVSInMemory.hs) module.
+As an example, in [UseCasePureSpec](test/UseCasePureSpec.hs) I'm providing pure interpretations 
+for all effects. 
+
+The `runPure` function takes a program with effects and handles each effect till it gets reduced 
+to `[Either ReservationError (ReservationMap‚ a)]`:
 
 ```haskell
--- | Takes a program with effects and handles each effect till it gets reduced to [Either ReservationError (ReservationMap‚ a)]. No IO !
 runPure :: ReservationMap
-        -> (forall r. Members [Persistence, Error ReservationError, Trace, Input Config] r => Sem r a)
-        -> [Either ReservationError (ReservationMap, a)]
+        -> (forall r. Members [UC.Persistence, Error UC.ReservationError, Trace] r => Sem r a)
+        -> [Either UC.ReservationError (ReservationMap, a)]
 runPure kvsMap program =
   program
-     & runKvsPure kvsMap
-     & runInputConst config
-     & runError @ReservationError
-     & ignoreTrace
-     & runM
-  where
-    config = Config {port = 8080, dbPath = "kvs.db", backend = InMemory}
+     & runKvsPure kvsMap              -- run the key-value store on a simple ReservationMap
+     & runError @UC.ReservationError  -- run error handling to produce an Either UC.ReservationError (ReservationMap, a)
+     & ignoreTrace                    -- run Trace by simply ignoring all messages 
+     & runM                           -- wrap everything in a monadic type, [] in this case
 ```
 
+In addition to that I'm providing wrapping functions like `runAvailableSeats` that use `runPure` to interprete the effects of
+the actual use case functions (eg. `UC.availableSeats`) and extract the actual result from the 
+`[Either UC.ReservationError (ReservationMap, a)]` return value:
 
+```haskell
+runAvailableSeats :: ReservationMap -> Day -> Int
+runAvailableSeats kvsMap day = do
+  case runPure kvsMap (UC.availableSeats day) of
+    [Right (_, numSeats)] -> numSeats
+    [Left err]            -> error "availableSeats failed"
+```
 
+This is all that it takes to abstract away a persistence layer, a logging facility and exception handling. 
+We can now write tests in pure code:
 
-## Interface Adapters
+```haskell
+-- setting up test fixtures
+initReservations :: ReservationMap
+initReservations = M.singleton day res
 
-> No code inward of this circle should know anything at all about the database. 
-> If the database is a SQL database, then all the SQL should be restricted to this layer, 
-> and in particular to the parts of this layer that have to do with the database.
+day = read "2020-05-02"
+res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
+
+spec :: Spec
+spec =
+  describe "Reservation Use Case (only pure code)" $ do
+  
+    it "computes the number of available seats for a given day" $ do
+      (runAvailableSeats initReservations day) `shouldBe` 16
+```
+
+## The Interface Adapters layer
 
 This layer holds code for adapters to external resources like databases, message queues, 
 configuration, Logging, etc.
@@ -454,10 +477,12 @@ The Logging effect `Trace` ships with Polysemy, so we don't have to implement an
 but I leave this as an exercise for the reader... )
 
 But as the `KVS` type is our own invention we have to provide our own implementations.
+(Of course, we could have used the `KVStore` type from [polysemy-zoo](https://hackage.haskell.org/package/polysemy-zoo-0.7.0.0/docs/Polysemy-KVStore.html),
+but for didactic purposes we will roll our own.)
 
 The following code is the in-memory 
-implementation of the [KVSInMemory](src/InterfaceAdapters/KVSInMemory.hs) module.
-It defines a key-value store in term of `State (Map k v)` that is a `Map k v` in a `State` monad context:
+implementation from the [KVSInMemory](src/InterfaceAdapters/KVSInMemory.hs) module.
+It defines a key-value store in term of `State (Map k v)` that is a `Map k v` in a `State` effect context:
 
 ```haskell
 runKvsOnMapState :: ( Member (State (M.Map k v)) r, Ord k) 
@@ -468,7 +493,19 @@ runKvsOnMapState = interpret $ \case
   GetKvs k      -> fmap (M.lookup k) get
   InsertKvs k v -> modify $ M.insert k v
   DeleteKvs k   -> modify $ M.delete k
+```
 
+So whenever the `interpret` functions detects a `GetKvs k` value, that was constructed by a call to `getKvs k` in the use case layer,
+it pattern matches it to a Map lookup of `k` that is executed against state retrieved by `get`.
+ 
+Interestingly `get` is a smart constructor of the `State` effect. This means that by interpreting the `KVS` we have
+created new effects that in turn have to be interpreted. 
+
+The `runKvsPure` functions (which we already have seen in the use case testing) 
+chains interpretation of the effects `KVS` and `State` and thus allows us to work with pure Maps as
+mocks for a key-value store:
+
+```haskell
 runKvsPure :: Ord k 
            => M.Map k v
            -> Sem (KVS k v : State (M.Map k v) : r) a 
@@ -476,7 +513,68 @@ runKvsPure :: Ord k
 runKvsPure map = runState map . runKvsOnMapState
 ```
 
-  
+### A key-value store with a SQLite backend.
+
+As we are in the interface adapters layer, we are allowed to get our hands dirty with
+*real world code*, like database access. As an example I have provided a SQLite based interpretaion of the `KVS` effect
+in [KVSSqllite.hs](src/InterfaceAdapters/KVSSqlite.hs).
+
+The effect interpreting function is `runKvsAsSQLite`:
+
+```haskell
+-- | Run a KVStore effect against a SQLite backend. Requires a Config object as input.
+runKvsAsSQLite :: (Member (Embed IO) r, Member (Input Config) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v)
+                   => Sem (KVS k v : r) a
+                   -> Sem r a
+runKvsAsSQLite = interpret $ \case
+  GetKvs k      -> getAction k
+  ListAllKvs    -> listAction
+  InsertKvs k v -> insertAction k v
+  DeleteKvs k   -> deleteAction k
+```
+
+The function's type signature introduces a two more constraints on the effect stack type `r`: 
+`Member (Embed IO) r` and `Member (Input Config) r`. 
+`(Embed IO)` is needed as accessing SQLite will require IO, which can be lifted into the `Sem r` monad with `Embed IO`.
+
+SQLite always needs a file name to create a database connection. As we want to be able to keep this name configurable, we
+use the `(Input Config)` effect. `
+Config` is a data type that I created to represent global application configuration,
+including the database file name.
+`Input` is a Polysemy built-in effect which can provide input to an application, quite similar to a `Reader` monad.
+
+These effects are introduced by the actual implementations of the `KVS` constructors, like `getAction k`, which retrieves
+a value from the database by looking up the key `k`:
+
+```haskell
+getAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v) => k -> Sem r (Maybe v)
+getAction key = do
+  conn <- connectionFrom input
+  rows <- embed (SQL.queryNamed conn
+                      "SELECT key, value FROM store WHERE key = :key"
+                      [":key" := show key] :: IO [KeyValueRow])
+  trace $ "get: " ++ show rows
+  case rows of
+    []                          -> return Nothing
+    (KeyValueRow _key value):xs -> return $ (decode . encodeUtf8) value
+
+-- | create a connection based on configuration data
+connectionFrom :: (Member (Embed IO) r) => Sem r Config -> Sem r SQL.Connection
+connectionFrom c = do
+  config <- c
+  embed (getConnection (dbPath config))
+    where
+      getConnection :: FilePath -> IO SQL.Connection
+      getConnection dbFile = do
+        conn <- SQL.open dbFile
+        SQL.execute_ conn "CREATE TABLE IF NOT EXISTS store (key TEXT PRIMARY KEY, value TEXT)"
+        return conn
+```
+
+
+### Testing
+
+## The External Interfaces layer  
   
   
   

@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module ExternalSpec where
+module ExternalInterfacesSpec where
 
 import           Control.Monad.Except
 import           Data.ByteString                 (ByteString)
@@ -12,7 +12,7 @@ import           Data.Function                   ((&))
 import           Data.IORef
 import qualified Data.Map.Strict                 as M
 import           Data.Time.Calendar
-import           External.ReservationRestService
+import           ExternalInterfaces.ReservationRestService
 import           InterfaceAdapters.Config
 import           InterfaceAdapters.KVSInMemory
 import           Network.HTTP.Types.Header       (hContentType)

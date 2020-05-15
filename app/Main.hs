@@ -8,7 +8,7 @@ import           Data.IORef                      (newIORef)
 import qualified Data.Map.Strict                 as M
 import qualified Data.Map.Strict                 as M
 import           Data.Time.Calendar
-import           External.ReservationRestService
+import           ExternalInterfaces.ReservationRestService
 import           InterfaceAdapters.Config
 import           InterfaceAdapters.KVSFileServer (runKvsAsFileServer)
 import           InterfaceAdapters.KVSInMemory   (runKvsOnMapState)
@@ -47,7 +47,8 @@ createApp config = do
 
 main :: IO ()
 main = do
-  let config = Config {port = 8080, backend = SQLite, dbPath = "kvs.db"} -- In real life this will be external configuration like commandline parameters or a configuration file.
+  -- In real life Config will be provided externally by eg. commandline parameters or a configuration file.
+  let config = Config {port = 8080, backend = SQLite, dbPath = "kvs.db"} 
   app  <- createApp config
   putStrLn $ "Starting server on port " ++ show (port config)
   Warp.run (port config) app
