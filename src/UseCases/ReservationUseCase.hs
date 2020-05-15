@@ -69,8 +69,7 @@ newtype ReservationError = ReservationNotPossible String deriving (Show, Eq)
 availableSeats :: (Member Persistence r, Member Trace r) => Day -> Sem r Int
 availableSeats day = do
   trace $ "compute available seats for " ++ show day
-  maybeList <- getKvs day
-  let todaysReservations = fromMaybe [] maybeList
+  todaysReservations <- fetch day
   return $ Dom.availableSeats maxCapacity todaysReservations
 
 -- | the maximum capacity of the restaurant.

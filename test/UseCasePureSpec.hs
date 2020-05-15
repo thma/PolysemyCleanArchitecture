@@ -7,8 +7,8 @@ import           Data.IORef
 import qualified Data.Map.Strict                as M
 import           Data.Time.Calendar
 import           Domain.ReservationDomain
-import           InterfacesAdapters.Config
-import           InterfacesAdapters.KVSInMemory
+import           InterfaceAdapters.Config
+import           InterfaceAdapters.KVSInMemory
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.Input                 (Input, runInputConst)

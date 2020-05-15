@@ -13,8 +13,8 @@ import           Data.IORef
 import qualified Data.Map.Strict                 as M
 import           Data.Time.Calendar
 import           External.ReservationRestService
-import           InterfacesAdapters.Config
-import           InterfacesAdapters.KVSInMemory
+import           InterfaceAdapters.Config
+import           InterfaceAdapters.KVSInMemory
 import           Network.HTTP.Types.Header       (hContentType)
 import           Network.HTTP.Types.Method       (methodDelete, methodPost)
 import qualified Network.Wai.Handler.Warp        as W

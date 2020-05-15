@@ -2,8 +2,8 @@ module InterfaceAdaptersSpec where
 
 import           Data.Function                ((&))
 import qualified Data.Map.Strict              as M
-import           InterfacesAdapters.Config
-import           InterfacesAdapters.KVSSqlite
+import           InterfaceAdapters.Config
+import           InterfaceAdapters.KVSSqlite
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.Input               (Input, runInputConst)

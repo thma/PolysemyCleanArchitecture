@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0d90d1e3af7955d98914e6f23c1c20ec0c67020de8767c6debc0995104453bad
+-- hash: ea689d4106deec07fb98671534b4b1dbcf0086766df9c5fce67875268482a98f
 
 name:           RestaurantReservation
 version:        0.1.0.0
@@ -28,10 +28,10 @@ library
   exposed-modules:
       Domain.ReservationDomain
       External.ReservationRestService
-      InterfacesAdapters.Config
-      InterfacesAdapters.KVSFileServer
-      InterfacesAdapters.KVSInMemory
-      InterfacesAdapters.KVSSqlite
+      InterfaceAdapters.Config
+      InterfaceAdapters.KVSFileServer
+      InterfaceAdapters.KVSInMemory
+      InterfaceAdapters.KVSSqlite
       UseCases.KVS
       UseCases.ReservationUseCase
   other-modules:

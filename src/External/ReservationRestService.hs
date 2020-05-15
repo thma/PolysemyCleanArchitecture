@@ -13,7 +13,7 @@ import           Data.ByteString.Lazy.Char8  (pack)
 import           Data.Time.Calendar          (Day)
 import qualified Domain.ReservationDomain    as Dom (Reservation,
                                                      ReservationMap)
-import           InterfacesAdapters.Config   (Config)
+import           InterfaceAdapters.Config   (Config)
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.Input              (Input)

@@ -205,13 +205,37 @@ availableSeats :: Int-> [Reservation] -> Int
 availableSeats maxCapacity reservations = maxCapacity - usedCapacity reservations
 ```
 
-As already mentioned: this layer has no knowledge of the world, it's all pure code.
-Testing this is straight forward, as you can see from the [DomainSpec](test/DomainSpec.hs) code.
-
-The `Reservation` data type and some of the domain logic functions are depicted in the in the inner **Domain** circle of the following
+The `Reservation` data type and some of the domain logic functions are depicted in the in the following
 diagram:
 
-![The Reservation System architecture](clean-architecture.png)
+![The Domain layer](domain.png)
+
+### Testing
+
+As already mentioned: this layer has no knowledge of the world, it's all pure code.
+Testing thus is straight forward, as you can see from the [DomainSpec](test/DomainSpec.hs) code.
+
+The data types and functions of the domain layer can be used without any mocking of components:
+
+```haskell
+day = fromGregorian 2020 1 29
+res1 = Reservation day "Andrew M. Jones" "amjones@example.com" 4
+res2 = Reservation day "Thomas Miller" "tm@example.com" 3
+reservations = [res1, res2]
+totalCapacity = 20
+
+spec :: Spec
+spec =
+  describe "Domain Logic" $ do
+    it "computes the used capacity for an empty list of reservations" $
+      usedCapacity [] `shouldBe` 0
+
+    it "computes the used capacity for a list of reservations" $
+      usedCapacity [res1, res2] `shouldBe` 7
+      
+    it "computes the available seats for a list of reservations" $
+      availableSeats totalCapacity [res1, res2] `shouldBe` 13
+```
 
 ## The Use Case layer
 
@@ -251,7 +275,7 @@ to provide an audit trail.
 The dependency rule of clean architecture bans all direct access to a database or a 
 logging-infrastructure from the use case layer.
 
-**So how can we define such a use case without violating the dependency rule?**
+### How can we define such a use case without violating the dependency rule?
 
 Algebraic Effect systems offer a consistent answer: 
 1. We *specify* the usage of effects (that is things from the outer layers) in the use case layer,
@@ -360,11 +384,17 @@ The concrete interpretation of these calls happens later at run time. If we prov
 
 For example, in [UseCasePureSpec](test/UseCasePureSpec.hs) I'm providing pure interpretations 
 for all effects. For the key value store I'm using `runKvsPure` function from the 
-[KVSInMemory](src/InterfacesAdapters/KVSInMemory.hs) module.
+[KVSInMemory](src/InterfaceAdapters/KVSInMemory.hs) module.
+
+![Use Cases layer](use-cases.png)
+
+### Testing
 
 This allows writing tests in the same pure way as for the domain logic.
 
-## InterfacesAdapters
+
+
+## Interface Adapters
 
 > No code inward of this circle should know anything at all about the database. 
 > If the database is a SQL database, then all the SQL should be restricted to this layer, 
@@ -380,7 +410,7 @@ but I leave this as an exercise for the reader... )
 But as the `KVS` type is our own invention we have to provide our own implementations.
 
 The following code is the in-memory 
-implementation of the [KVSInMemory](src/InterfacesAdapters/KVSInMemory.hs) module.
+implementation of the [KVSInMemory](src/InterfaceAdapters/KVSInMemory.hs) module.
 It defines a key-value store in term of `State (Map k v)` that is a `Map k v` in a `State` monad context:
 
 ```haskell

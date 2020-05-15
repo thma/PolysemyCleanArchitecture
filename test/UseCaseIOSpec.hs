@@ -9,8 +9,8 @@ import           Data.List                        (isSuffixOf)
 import qualified Data.Map.Strict                  as M
 import           Data.Time.Calendar
 import           Domain.ReservationDomain
-import           InterfacesAdapters.Config
-import           InterfacesAdapters.KVSFileServer
+import           InterfaceAdapters.Config
+import           InterfaceAdapters.KVSFileServer
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.Input                   (Input, runInputConst)

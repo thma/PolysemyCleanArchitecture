@@ -1,4 +1,4 @@
-module InterfacesAdapters.KVSInMemory 
+module InterfaceAdapters.KVSInMemory 
   ( runKvsPure
   , runKvsOnMapState
   ) 

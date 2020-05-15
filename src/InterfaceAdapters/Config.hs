@@ -1,4 +1,4 @@
-module InterfacesAdapters.Config where
+module InterfaceAdapters.Config where
 
 -- | global application configuration
 data Config = Config {

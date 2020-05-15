@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module InterfacesAdapters.KVSSqlite where
+module InterfaceAdapters.KVSSqlite where
 
 import           Polysemy
 
@@ -15,7 +15,7 @@ import qualified Database.SQLite.Simple         as SQL
 import           Database.SQLite.Simple.FromRow
 import           Database.SQLite.Simple.ToRow
 import           Database.SQLite.Simple.Types
-import           InterfacesAdapters.Config
+import           InterfaceAdapters.Config
 import           Polysemy.Input
 import           Polysemy.Internal.Union        (Member)
 import           Polysemy.Trace                 (Trace, trace)
