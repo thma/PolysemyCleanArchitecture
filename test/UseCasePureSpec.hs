@@ -7,7 +7,6 @@ import           Data.IORef
 import qualified Data.Map.Strict                as M
 import           Data.Time.Calendar
 import           Domain.ReservationDomain
-import           InterfaceAdapters.Config
 import           InterfaceAdapters.KVSInMemory
 import           Polysemy
 import           Polysemy.Error
@@ -15,47 +14,50 @@ import           Polysemy.Input                 (Input, runInputConst)
 import           Polysemy.State
 import           Polysemy.Trace                 (Trace, ignoreTrace, traceToIO)
 import           Test.Hspec
-import           UseCases.ReservationUseCase
+import qualified UseCases.ReservationUseCase    as UC
 
 main :: IO ()
 main = hspec spec
 
 -- | Takes a program with effects and handles each effect till it gets reduced to [Either ReservationError (ReservationMap‚ a)]. No IO !
 runPure :: ReservationMap
-        -> (forall r. Members [Persistence, Error ReservationError, Trace, Input Config] r => Sem r a)
-        -> [Either ReservationError (ReservationMap, a)]
+        -> (forall r. Members [UC.Persistence, Error UC.ReservationError, Trace] r => Sem r a)
+        -> [Either UC.ReservationError (ReservationMap, a)]
 runPure kvsMap program =
   program
      & runKvsPure kvsMap
-     & runInputConst config
-     & runError @ReservationError
+     & runError @UC.ReservationError
      & ignoreTrace
      & runM
-  where
-    config = Config {port = 8080, dbPath = "kvs.db", backend = InMemory}
 
 -- Helper functions for interpreting all effects in a pure way. That is no IO !
 runTryReservation :: ReservationMap -> Reservation -> Maybe ReservationMap
 runTryReservation kvsMap res = do
-  case runPure kvsMap (tryReservation res) of
+  case runPure kvsMap (UC.tryReservation res) of
     [Right (m, ())] -> Just m
     [Left err]      -> Nothing
 
+runAvailableSeats :: ReservationMap -> Day -> Int
+runAvailableSeats kvsMap day = do
+  case runPure kvsMap (UC.availableSeats day) of
+    [Right (_, numSeats)] -> numSeats
+    [Left err]            -> error "fetch failed"
+
 runFetch :: ReservationMap -> Day -> [Reservation]
 runFetch kvsMap day = do
-  case runPure kvsMap (fetch day) of
+  case runPure kvsMap (UC.fetch day) of
     [Right (_, reservations)] -> reservations
     [Left err]                -> error "fetch failed"
 
 runListAll :: ReservationMap -> ReservationMap
 runListAll kvsMap = do
-  case runPure kvsMap (listAll) of
+  case runPure kvsMap (UC.listAll) of
     [Right (_, m)] -> m
     [Left err]     -> error "listALl failed"
 
 runCancel :: ReservationMap -> Reservation -> Maybe ReservationMap
 runCancel kvsMap res = do
-  case runPure kvsMap (cancel res) of
+  case runPure kvsMap (UC.cancel res) of
     [Right (m, ())] -> Just m
     [Left err]      -> Nothing
 
@@ -69,6 +71,10 @@ res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
 spec :: Spec
 spec =
   describe "Reservation Use Case (only pure code)" $ do
+  
+    it "computes the number of available seats for a given day" $ do
+      (runAvailableSeats initReservations day) `shouldBe` 16
+  
     it "fetches a list of reservations from the KV store" $ do
       (runFetch initReservations day) `shouldBe` res
 

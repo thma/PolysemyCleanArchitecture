@@ -407,17 +407,36 @@ operation that wraps the access to the key-value store.
 
 ### Testing
 
-This allows writing tests in the same pure way as for the domain logic.
 
-The key value store function `getKvs` don't perform any concrete operation. They just `specify` access to
+
+The key value store functions like `getKvs` don't perform any concrete operation. They just `specify` access to
 an abstract key value store interface.
 
-The concrete interpretation of these calls happens later at run time. If we provide a *pure* interpretation
-(that is no IO) then the resulting code will also be pure.
+The concrete interpretation of these calls will be specified in the application assembly (typically in `Main.hs`) or
+in the setup code of test cases.
+If we provide a *pure* interpretation (that is no IO) then the resulting code will also be pure. 
+This allows writing tests in the same pure way as for the domain logic.
 
 For example, in [UseCasePureSpec](test/UseCasePureSpec.hs) I'm providing pure interpretations 
 for all effects. For the key value store I'm using `runKvsPure` function from the 
 [KVSInMemory](src/InterfaceAdapters/KVSInMemory.hs) module.
+
+```haskell
+-- | Takes a program with effects and handles each effect till it gets reduced to [Either ReservationError (ReservationMap‚ a)]. No IO !
+runPure :: ReservationMap
+        -> (forall r. Members [Persistence, Error ReservationError, Trace, Input Config] r => Sem r a)
+        -> [Either ReservationError (ReservationMap, a)]
+runPure kvsMap program =
+  program
+     & runKvsPure kvsMap
+     & runInputConst config
+     & runError @ReservationError
+     & ignoreTrace
+     & runM
+  where
+    config = Config {port = 8080, dbPath = "kvs.db", backend = InMemory}
+```
+
 
 
 
