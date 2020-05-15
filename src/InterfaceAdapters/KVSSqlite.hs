@@ -85,7 +85,7 @@ runKvsAsSQLite = interpret $ \case
       embed $ SQL.executeNamed conn "DELETE FROM store WHERE key = :key" [":key" := show key]
 
 
-    -- | create a connection based on configuration data
+    -- | create a connection based on configuration data, make sure table "store" exists.
     connectionFrom :: (Member (Embed IO) r) => Sem r Config -> Sem r SQL.Connection
     connectionFrom c = do
       config <- c

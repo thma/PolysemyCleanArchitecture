@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
-module ExternalInterfaces.ReservationRestService where
+module InterfaceAdapters.ReservationRestService where
 
 import           Control.Error               (fromMaybe)
 import           Control.Monad.IO.Class      (liftIO)

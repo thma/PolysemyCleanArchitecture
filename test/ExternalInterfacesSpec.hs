@@ -12,7 +12,7 @@ import           Data.Function                   ((&))
 import           Data.IORef
 import qualified Data.Map.Strict                 as M
 import           Data.Time.Calendar
-import           ExternalInterfaces.ReservationRestService
+import           InterfaceAdapters.ReservationRestService
 import           InterfaceAdapters.Config
 import           InterfaceAdapters.KVSInMemory
 import           Network.HTTP.Types.Header       (hContentType)

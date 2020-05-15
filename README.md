@@ -83,42 +83,39 @@ according to the actual needs. This avoids "vendor lock in".
 
 5. The Business logic is agnostic of the outside world. It has no dependencies to any external systems like DB, ESB, etc.
  
+<!-- 
 He tries to condense the essence of the different approaches into a single big picture:
 
 ![the big picture](https://blog.cleancoder.com/uncle-bob/images/2012-08-13-the-clean-architecture/CleanArchitecture.jpg) 
- 
+ -->
 ### Layers with clearly separated responsibilities
  
 The architecture consists of four layers, each of which contains components with a specific scope and a limited set of responsibilities.
 
 1. At the centre sits the **Domain** layer consisting of entities and core business logic.
 2. Next comes the **Use Cases** layer where all resources are coordinated that are required to fulfill a given use case.
-   In particular they use entities and logic from the domain layer to implement use cases.
+   In particular, it uses entities and logic from the domain layer to implement use cases.
 3. The **Interface Adapters** layer holds code for UI controllers and presenters as well as adapters to external 
    resources like databases, message queues, configuration, Logging, etc.
-4. The **ExternalInterfaces** layer contains the technical implementation of external interfaces. For example,
-   a conrete REST service assembly, Web and UI infrastructure, databases, etc. 
+4. The **External Interfaces** layer contains the technical implementation of external interfaces. For example,
+   a concrete REST service assembly, Web and UI infrastructure, databases, etc. 
  
  ### The Dependency Rule
- 
-In the big picture above you can see  arrows coming in from the left.
-These arrows represent the dependency rule, which states that
-an inner circle may not depend on anything defined in an more outward circle:
- 
+  
 > The overriding rule that makes this architecture work is The Dependency Rule. This rule says that source code 
 > dependencies can only point inwards. Nothing in an inner circle can know anything at all about something in an outer 
 > circle. In particular, the name of something declared in an outer circle must not be mentioned by the code in the an 
 > inner circle. That includes, functions, classes. variables, or any other named software entity.
 
-This dependency rule implies a very interesting consequence: If a Use Case interactor needs to 
+This dependency rule leads to a very interesting consequence: If a use case interactor needs to 
 access a component from an outer circle, e.g. retrieve data from a database, this must be done
 in a specific way in order to avoid breaking the dependency rule:
-In the Use Case layer we don't have any knowledge about the components of the outer circles.
-If we require access to a database, the call interface, as well as the data transfer protocol must be specified in
-the Use Case layer.
+In the use case layer we don't have any knowledge about the components of the outer circles.
+**If we require access to a database (or any other external resources), the call interface, 
+as well as the data transfer protocol must be specified in the use case layer.**
 
 The components in the outer circles will then implement this interface. Using this kind of interfaces, 
-it is possible to communicate accross the boundaries of the layers but still maintain a strict separation of
+it is possible to communicate accross the layer boundaries, but still maintain a strict separation of
 concerns. 
 
 If you want to dive deeper into clean architecture I recommend the
@@ -128,7 +125,8 @@ as an entry point. Robert C. Martin later also published a whole book
 on this concept.
 
 In the following section I'll explain how the clean architecture guidelines can be implemented in a 
-Haskell REST API application.
+Haskell REST API application by making use of the algebraic effect library 
+[Polysemy](https://github.com/polysemy-research/polysemy#readme).
 
 ## The Domain layer
 
@@ -213,7 +211,7 @@ diagram:
 ### Testing
 
 As already mentioned: this layer has no knowledge of the world, it's all pure code.
-Testing thus is straight forward, as you can see from the [DomainSpec](test/DomainSpec.hs) code.
+Testing therefore is straight forward, as you can see from the [DomainSpec](test/DomainSpec.hs) code.
 
 The data types and functions of the domain layer can be used without any mocking of components:
 
@@ -558,7 +556,7 @@ getAction key = do
     []                          -> return Nothing
     (KeyValueRow _key value):xs -> return $ (decode . encodeUtf8) value
 
--- | create a connection based on configuration data
+-- | create a connection based on configuration data, make sure table "store" exists.
 connectionFrom :: (Member (Embed IO) r) => Sem r Config -> Sem r SQL.Connection
 connectionFrom c = do
   config <- c
@@ -570,6 +568,24 @@ connectionFrom c = do
         SQL.execute_ conn "CREATE TABLE IF NOT EXISTS store (key TEXT PRIMARY KEY, value TEXT)"
         return conn
 ```
+
+Let's have a closer look at what is going on in `getAction`:
+
+First `connectionFrom input` is used to create a database connection based on the `Config` object obtained by `input` 
+(the smart Constructor of the `Input` effect).
+The `Config` type contains a field `dbPath` which is read and used to create the connection with `getConnection`.
+As this is an IO operation we have to use `embed` to lift it into the `Sem r` monad.
+
+In the second step `SQL.queryNamed` is used to perform the actual select statement against the db connection.
+Again `embed` must be used to lift this IO operation.
+
+Finally the resulting `[KeyValueRow]` list is pattern matched: if the list is empty `Nothing` is returned.
+Otherwise `Aeson.decode` is called to unmarshal a result value from the JSON data retrieved from the database.
+
+The JSON encoding and decoding to and from the DB is the reason for the `ToJSON v, FromJSON v` constraints on the value type `v`.
+
+
+
 
 ![Interface Adapters layer](interface-adapters.png)
 
