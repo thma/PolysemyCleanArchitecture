@@ -101,7 +101,7 @@ tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
       insertKvs date updated
 
 -- | fetch the list of reservations for a given day from the key value store.
--- | If no match is found, Nothings is returned, else the Result wrapped with Just.
+-- | If no match is found, an empty list is returned.
 -- | Implements UseCase 3.
 fetch :: (Member Persistence r, Member Trace r) => Day -> Sem r [Dom.Reservation]
 fetch day = do

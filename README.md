@@ -292,9 +292,16 @@ Let's see how this looks like when using Polysemy to specify effects:
 availableSeats :: (Member Persistence r, Member Trace r) => Day -> Sem r Int
 availableSeats day = do
   trace $ "compute available seats for " ++ show day
-  maybeList <- getKvs day
-  let todaysReservations = fromMaybe [] maybeList
+  todaysReservations <- fetch day
   return $ Dom.availableSeats maxCapacity todaysReservations
+
+-- | fetch the list of reservations for a given day from the key value store.
+--   If no match is found, an empty list is returned.
+fetch :: (Member Persistence r, Member Trace r) => Day -> Sem r [Dom.Reservation]
+fetch day = do
+  trace $ "fetch reservations for " ++ show day
+  maybeList <- getKvs day
+  return $ fromMaybe [] maybeList
 
 -- | the maximum capacity of the restaurant.
 maxCapacity :: Int
@@ -324,10 +331,21 @@ assembly or in a test setup.
 The next line specify a lookup of the reservation list for `day` from the persistence layer:
 
 ```haskell
-  maybeList <- getKvs day
+  todaysReservations <- fetch day
 ```
 
-To understand this line we first have to know the definition of the `Persistence` effect:
+where fetch is defined as:
+
+```haskell
+fetch :: (Member Persistence r, Member Trace r) => Day -> Sem r [Dom.Reservation]
+fetch day = do
+  trace $ "fetch reservations for " ++ show day
+  maybeList <- getKvs day
+  return $ fromMaybe [] maybeList
+```
+
+To understand the `fetch` function, in particular the expression `maybeList <- getKvs day` we first have to know the 
+definition of the `Persistence` effect:
 
 ```haskell
 type Persistence = KVS Day [Dom.Reservation]
@@ -357,24 +375,29 @@ insertKvs  :: Member (KVS k v) r => k -> v -> Sem r ()
 deleteKvs  :: Member (KVS k v) r => k -> Sem r ()
 ```
 
-These functions can be used in the `Sem` Monad. So now we understand much better what happens in `availableSeats`:
+These functions can be used in the `Sem` Monad. So now we understand much better what happens in `fetch`:
 
 ```haskell
-availableSeats :: (Member Persistence r, Member Trace r) => Day -> Sem r Int
-availableSeats day = do
-  ...
+fetch :: (Member Persistence r, Member Trace r) => Day -> Sem r [Dom.Reservation]
+fetch day = do
+  trace $ "fetch reservations for " ++ show day
   maybeList <- getKvs day
-  let todaysReservations = fromMaybe [] maybeList
-  return $ Dom.availableSeats maxCapacity todaysReservations
+  return $ fromMaybe [] maybeList
 ```
 
-As `availableSeats` operates in the `Sem` monad, `maybeList` is bound to a `Maybe [Dom.Reservation]` value, 
+As `fetch` operates in the `Sem` monad, `maybeList` is bound to a `Maybe [Dom.Reservation]` value, 
 which results from the `getKVs day` action.
-Thus `todaysReservations` is bound to the list of reservations that were retrieved (or `[]` in case `Nothing`
+The function finally uses `fromMaybe` to return a list of reservations that were retrieved (or `[]` in case `Nothing`
 was found for `day`).
 
-Then we call the domain logic function `Dom.availableSeats` to compute the number of available seats.
+Then, back in `availableSeats` we call the domain logic function `Dom.availableSeats` to compute the number of available seats.
 The resulting `Int` value is lifted into the `Sem r` monad, thus matching the signature of the return type `Sem r Int`.
+
+![Use Cases layer](use-cases.png)
+
+### Testing
+
+This allows writing tests in the same pure way as for the domain logic.
 
 The key value store function `getKvs` don't perform any concrete operation. They just `specify` access to
 an abstract key value store interface.
@@ -385,12 +408,6 @@ The concrete interpretation of these calls happens later at run time. If we prov
 For example, in [UseCasePureSpec](test/UseCasePureSpec.hs) I'm providing pure interpretations 
 for all effects. For the key value store I'm using `runKvsPure` function from the 
 [KVSInMemory](src/InterfaceAdapters/KVSInMemory.hs) module.
-
-![Use Cases layer](use-cases.png)
-
-### Testing
-
-This allows writing tests in the same pure way as for the domain logic.
 
 
 
