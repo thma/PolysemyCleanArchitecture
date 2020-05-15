@@ -2,4 +2,8 @@
 stack.yaml.lock
 *.data
 *.db
+*.cabal
+*.iml
+.idea/
+out/
 *~
