@@ -278,7 +278,7 @@ logging-infrastructure from the use case layer.
 ### How can we define such a use case without violating the dependency rule?
 
 Algebraic Effect systems offer a consistent answer: 
-1. We **declaration effects** in the use case layer by defining them as an abstract interface.
+1. We **declare effects** in the use case layer by defining them as an abstract interface.
 2. We also specify the actual **usage of effects** in the use case layer by having calls against the abstract interface.
 3. We provide an **interpretation** of these effects only in the outer layers.
    This also allows us to provide different implementations. 
