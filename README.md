@@ -393,6 +393,16 @@ was found for `day`).
 Then, back in `availableSeats` we call the domain logic function `Dom.availableSeats` to compute the number of available seats.
 The resulting `Int` value is lifted into the `Sem r` monad, thus matching the signature of the return type `Sem r Int`.
 
+In the next diagram I'm depicting the layers Use Cases and Domain. The arrow from Use Cases to Domain represents the dependency
+rule: use case code may only reference domain logic but nothing from outer layers.
+  
+On the left side of the diagram we see the use case controllers (aka *use case interactors*) like `availableSeats` that 
+coordinate all activities and resources to fulfill a specific use case.
+
+On the right we see the gateway (or interface) code like the `KVS` abstraction of a key-value store or the `fetch` 
+operation that wraps the access to the key-value store.
+
+
 ![Use Cases layer](use-cases.png)
 
 ### Testing
