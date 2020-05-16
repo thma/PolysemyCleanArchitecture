@@ -584,8 +584,75 @@ Otherwise `Aeson.decode` is called to unmarshal a result value from the JSON dat
 
 The JSON encoding and decoding to and from the DB is the reason for the `ToJSON v, FromJSON v` constraints on the value type `v`.
 
+### Declaring REST API
 
+Our task was to build the backend for the reservation system. We will have to implement a REST API to allow access to the
+business logic that we defined in the use case layer.
 
+The overall idea is to provide a REST route for all of the exposed functions of the `ReservationUseCase`.
+The following tyble shows the mapping of those functions to the REST routes that we want to map them to:
+
+```
+listAll        GET    /reservations
+fetch          GET    /reservations/YYYY-MM-DD
+tryReservation POST   /reservations
+UC.cancel      DELETE /reservations
+availableSeats GET    /seats/YYYY-MM-DD
+```
+I'm using [Servant](http://www.servant.dev/) to define our REST API.
+The great thing about Servant is that it allows us to define REST APIs in a typesafe manner by using a
+type level DSL.
+
+Here comes the declaration of our API (please note that we declare our routes to accept and emit data in JSON format):
+
+```haskell
+-- | in order to allow JSON serialization for the Dom.Reservation type, it must instantiate FromJSON and ToJSON.
+instance ToJSON Dom.Reservation
+instance FromJSON Dom.Reservation
+
+-- | Declaring the routes of the REST API for Restaurant Reservations
+type ReservationAPI =
+       "reservations" :> Summary "retrieve a map of all reservations (Day -> [Reservation])"
+                      :> Get     '[ JSON] Dom.ReservationMap -- GET    /reservations
+
+  :<|> "reservations" :> Summary "retrieve list of reservations for a given day"
+                      :> Capture "day" Day
+                      :> Get     '[ JSON] [Dom.Reservation]  -- GET    /reservations/YYYY-MM-DD
+
+  :<|> "reservations" :> Summary "place a new reservation"
+                      :> ReqBody '[ JSON] Dom.Reservation
+                      :> Post    '[ JSON] ()                 -- POST   /reservations
+
+  :<|> "reservations" :> Summary "cancel a reservation"
+                      :> ReqBody '[ JSON] Dom.Reservation
+                      :> Delete  '[ JSON] ()                 -- DELETE /reservations
+                      
+  :<|> "seats"        :> Summary "retrieve number of free seats for a given day"
+                      :> Capture "day" Day
+                      :> Get     '[ JSON] Int                -- GET    /seats/YYYY-MM-DD
+```
+
+Next we have to create the connection between the declared routes and the actual business logic. This will be our
+REST service implementation. In our case we simply delegate to the use case controller functions.
+But off course we also implement stuff like validation here:
+
+```haskell
+import qualified UseCases.ReservationUseCase as UC 
+
+-- | implements the ReservationAPI
+reservationServer :: (Member UC.Persistence r, Member (Error UC.ReservationError) r, 
+                      Member Trace r, Member (Input Config) r) => ServerT ReservationAPI (Sem r)
+reservationServer =
+        UC.listAll        -- GET    /reservations
+  :<|>  UC.fetch          -- GET    /reservations/YYYY-MM-DD
+  :<|>  UC.tryReservation -- POST   /reservations
+  :<|>  UC.cancel         -- DELETE /reservations
+  :<|>  UC.availableSeats -- GET    /seats/YYYY-MM-DD
+```
+
+That's all!
+
+In the following diagram, we
 
 ![Interface Adapters layer](interface-adapters.png)
 
