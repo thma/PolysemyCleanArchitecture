@@ -634,7 +634,7 @@ type ReservationAPI =
 
 Next we have to create the connection between the declared routes and the actual business logic. This will be our
 REST service implementation. In our case we simply delegate to the use case controller functions.
-But off course we also implement stuff like validation here:
+Off course, we might also implement additional functionality here like validation:
 
 ```haskell
 import qualified UseCases.ReservationUseCase as UC 
@@ -652,7 +652,13 @@ reservationServer =
 
 That's all!
 
-In the following diagram, we
+In the following diagram, we now see the third layer. Again, the Interface Adapters layer may only reference code from the
+inner layers.
+To the right we see the `ReservationAPI` and its `reservationServer` implementation, which we just explored. They interface with
+the use case controller functions like `availableSeats`, `listAll`, etc.
+
+To the left we see the interpretations of the `KVS` effect (which was defined in the use case layer): `KVSInMemory`, 
+`KVSSqlite` (and a third one `KVSFileServer`, a file based implementation which you might explore on your own).
 
 ![Interface Adapters layer](interface-adapters.png)
 

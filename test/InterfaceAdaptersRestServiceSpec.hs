@@ -53,7 +53,7 @@ createApp = do
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
     handleErrors (Left (ReservationNotPossible msg)) = Left err412 {errBody = pack msg}
     handleErrors (Right value) = Right value
-    config = Config {port = 8080, dbPath = "kvs.db", backend = InMemory}
+    config = Config {port = 8080, dbPath = "kvs.db", backend = InMemory, verbose = False}
 
 
 reservationData :: LB.ByteString

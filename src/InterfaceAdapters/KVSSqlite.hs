@@ -45,11 +45,11 @@ runKvsAsSQLite = interpret $ \case
 
     getAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v) => k -> Sem r (Maybe v)
     getAction key = do
+      trace $ "getAction: " ++ show key
       conn <- connectionFrom input
       rows <- embed (SQL.queryNamed conn
                           "SELECT key, value FROM store WHERE key = :key"
                           [":key" := show key] :: IO [KeyValueRow])
-      trace $ "get: " ++ show rows
       case rows of
         []                          -> return Nothing
         (KeyValueRow _key value):xs -> return $ (decode . encodeUtf8) value
@@ -57,6 +57,7 @@ runKvsAsSQLite = interpret $ \case
 
     listAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v) => Sem r [(k, v)]
     listAction = do
+      trace "listAction:"
       conn <- connectionFrom input
       rows <- embed (SQL.query_ conn "SELECT key, value FROM store" :: IO [KeyValueRow])
       let maybeList = map toKV rows
@@ -70,6 +71,7 @@ runKvsAsSQLite = interpret $ \case
 
     insertAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v) => k -> v -> Sem r ()
     insertAction key value = do
+      trace $ "insertAction: " ++ show key ++ " " ++ show (encode value)
       let (query, params) = ("INSERT INTO store (key, value) VALUES (:key, :value) "
                           <> "ON CONFLICT (key) DO UPDATE SET value = excluded.value",
                           [":key" := show key, ":value" := encodedValue])
@@ -81,14 +83,16 @@ runKvsAsSQLite = interpret $ \case
 
     deleteAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k) => k -> Sem r ()
     deleteAction key = do
+      trace $ "deleteAction: " ++ show key
       conn <- connectionFrom input
       embed $ SQL.executeNamed conn "DELETE FROM store WHERE key = :key" [":key" := show key]
 
 
     -- | create a connection based on configuration data, make sure table "store" exists.
-    connectionFrom :: (Member (Embed IO) r) => Sem r Config -> Sem r SQL.Connection
+    connectionFrom :: (Member (Embed IO) r, Member Trace r) => Sem r Config -> Sem r SQL.Connection
     connectionFrom c = do
       config <- c
+      trace $ "open connection to: " ++ dbPath config
       embed (getConnection (dbPath config))
         where
           getConnection :: FilePath -> IO SQL.Connection

@@ -3,7 +3,6 @@ module ExternalInterfaces.ApplicationAssembly where
 import           Control.Monad.Except
 import           Data.ByteString.Lazy.Char8               (pack)
 import           Data.Function                            ((&))
-import           Data.IORef                               (newIORef)
 import qualified Data.Map.Strict                          as M
 import           Data.Time.Calendar
 import           InterfaceAdapters.Config
@@ -13,9 +12,11 @@ import           InterfaceAdapters.ReservationRestService
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.Input                           (Input, runInputConst)
-import           Polysemy.Trace                           (Trace, traceToIO)
+import           Polysemy.Trace                           (Trace, traceToIO, ignoreTrace)
 import           Servant.Server
+import           UseCases.KVS
 import           UseCases.ReservationUseCase
+import           Data.Aeson.Types (ToJSON, FromJSON)
 
 
 
@@ -23,14 +24,13 @@ import           UseCases.ReservationUseCase
 -- All Polysemy interpretations must be executed here.
 createApp :: Config -> IO Application
 createApp config = do
-  kvsIORef <- newIORef (M.fromList [] :: ReservationMap)
-  return (serve reservationAPI $ hoistServer reservationAPI (interpretServer config kvsIORef) reservationServer)
+  return (serve reservationAPI $ hoistServer reservationAPI (interpretServer config) reservationServer)
   where
-    interpretServer config kvsIORef sem  =  sem
-      & selectBackend config kvsIORef
+    interpretServer config sem  =  sem
+      & selectBackend config
       & runInputConst config
       & runError @ReservationError
-      & traceToIO
+      & selectTraceVerbosity config
       & runM
       & liftToHandler
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
@@ -39,10 +39,23 @@ createApp config = do
 
 -- | load application config. In real life, this would load a config file or read commandline args.
 loadConfig :: IO Config
-loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs.db"}
+loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs.db", verbose = True}
 
 -- | can select between SQLite or FileServer persistence backends.
-selectBackend config kvsIORef = case backend config of
+selectBackend
+  :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v)
+     => Config
+     -> Sem (KVS k v : r) a
+     -> Sem r a
+
+selectBackend config = case backend config of
   SQLite     -> runKvsAsSQLite
   FileServer -> runKvsAsFileServer
   InMemory   -> error "not supported"
+
+-- | if the config flag verbose is set to True, trace to Console, else ignore all trace messages
+selectTraceVerbosity :: (Member (Embed IO) r) => Config -> (Sem (Trace : r) a -> Sem r a)
+selectTraceVerbosity config =
+  if verbose config
+    then traceToIO
+    else ignoreTrace

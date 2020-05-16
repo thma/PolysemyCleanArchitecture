@@ -39,7 +39,7 @@ main = hspec spec
 
 
 loadConfig :: IO Config
-loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs-assembly.db"}
+loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs-assembly.db", verbose = False}
 
 spec :: Spec
 spec =
