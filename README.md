@@ -584,7 +584,7 @@ Otherwise `Aeson.decode` is called to unmarshal a result value from the JSON dat
 
 The JSON encoding and decoding to and from the DB is the reason for the `ToJSON v, FromJSON v` constraints on the value type `v`.
 
-### Declaring REST API
+### Declaring the REST API
 
 Our task was to build the backend for the reservation system. We will have to implement a REST API to allow access to the
 business logic that we defined in the use case layer.
@@ -650,6 +650,10 @@ reservationServer =
   :<|>  UC.availableSeats -- GET    /seats/YYYY-MM-DD
 ```
 
+I really love how **declarative** this code is. **We don't have to tell how** to exchange data between the REST server and
+the use case controllers.
+
+We **just tell what we want**: a mapping from the routes to the controller functions.
 That's all!
 
 In the following diagram, we now see the third layer. Again, the Interface Adapters layer may only reference code from the
@@ -662,8 +666,12 @@ To the left we see the interpretations of the `KVS` effect (which was defined in
 
 ![Interface Adapters layer](interface-adapters.png)
 
+### Testing the KVS implementations
 
-### Testing
+
+
+### Testing the REST API
+
 
 ## The External Interfaces layer  
   
