@@ -1,4 +1,4 @@
-module InterfaceAdaptersSpec where
+module InterfaceAdaptersKVSSQLiteSpec where
 
 import           Data.Function                ((&))
 import qualified Data.Map.Strict              as M

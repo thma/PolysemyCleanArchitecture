@@ -1,31 +1,23 @@
 module ExternalInterfaces.ApplicationAssembly where
 
 import           Control.Monad.Except
---import           Data.Aeson.Types                (FromJSON, ToJSON)
-import           Data.ByteString.Lazy.Char8      (pack)
-import           Data.Function                   ((&))
-import           Data.IORef                      (newIORef)
-import qualified Data.Map.Strict                 as M
---import qualified Data.Map.Strict                 as M
+import           Data.ByteString.Lazy.Char8               (pack)
+import           Data.Function                            ((&))
+import           Data.IORef                               (newIORef)
+import qualified Data.Map.Strict                          as M
 import           Data.Time.Calendar
-import           InterfaceAdapters.ReservationRestService
 import           InterfaceAdapters.Config
-import           InterfaceAdapters.KVSFileServer (runKvsAsFileServer)
---import           InterfaceAdapters.KVSInMemory   (runKvsOnMapState)
-import           InterfaceAdapters.KVSSqlite     (runKvsAsSQLite)
---import qualified Network.Wai.Handler.Warp        as Warp
+import           InterfaceAdapters.KVSFileServer          (runKvsAsFileServer)
+import           InterfaceAdapters.KVSSqlite              (runKvsAsSQLite)
+import           InterfaceAdapters.ReservationRestService
 import           Polysemy
 import           Polysemy.Error
-import           Polysemy.Input                  (Input, runInputConst)
---import           Polysemy.State                  (runStateIORef)
-import           Polysemy.Trace                  (Trace, traceToIO)
+import           Polysemy.Input                           (Input, runInputConst)
+import           Polysemy.Trace                           (Trace, traceToIO)
 import           Servant.Server
---import           UseCases.KVS                    (KVS)
 import           UseCases.ReservationUseCase
 
-selectBackend config kvsIORef = case backend config of
-  SQLite     -> runKvsAsSQLite
-  FileServer -> runKvsAsFileServer
+
 
 -- | creates the WAI Application that can be executed by Warp.run.
 -- All Polysemy interpretations must be executed here.
@@ -45,3 +37,12 @@ createApp config = do
     handleErrors (Left (ReservationNotPossible msg)) = Left err412 { errBody = pack msg}
     handleErrors (Right value) = Right value
 
+-- | load application config. In real life, this would load a config file or read commandline args.
+loadConfig :: IO Config
+loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs.db"}
+
+-- | can select between SQLite or FileServer persistence backends.
+selectBackend config kvsIORef = case backend config of
+  SQLite     -> runKvsAsSQLite
+  FileServer -> runKvsAsFileServer
+  InMemory   -> error "not supported"
