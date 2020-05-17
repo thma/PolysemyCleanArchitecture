@@ -769,6 +769,81 @@ spec =
 
 ### Testing the REST API
 
+The actual code for testing the REST API looks pretty straightforward. We create a [WAI](https://hackage.haskell.org/package/wai) 
+`Application` instance with `createApp` and execute REST operations like `get` and `postJSON` against it:
+
+```haskell
+reservationData :: LB.ByteString
+reservationData = "{\"email\":\"amjones@example.com\",\"quantity\":10,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}"
+
+postJSON   path = request methodPost   path [(hContentType, "application/json")]
+deleteJSON path = request methodDelete path [(hContentType, "application/json")]
+
+spec :: Spec
+spec =
+  with (createApp) $
+    describe "Rest Service" $ do
+      it "responds with 200 for a call GET /reservations " $
+        get "/reservations" `shouldRespondWith` "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":4,\"date\":\"2020-05-02\",\"name\":\"Andrew M. Jones\"}]}"
+      it "responds with 200 for a valid POST /reservations" $
+        postJSON "/reservations" reservationData `shouldRespondWith` 200
+      it "responds with 412 if a reservation can not be done on a given day" $
+        (postJSON "/reservations" reservationData >> postJSON "/reservations" reservationData) `shouldRespondWith` 412
+      it "responds with 200 for a valid DELETE /reservations" $
+        deleteJSON "/reservations" reservationData `shouldRespondWith` 200
+```
+
+Please note that these tests don't need a deployment of the WAI application to a web server. ALl testing can be done
+within  a single process.
+
+The interesting part is the creation of the `Application` instance.
+
+If we had a simple implementation `myServer` of a REST API `myApi`, which does not use any Polysemy effetcs, then we
+could create an `Application` instance like so:
+
+```haskell
+createSimpleApp :: Application
+createSimpleApp ::= serve myApi myServer
+```
+
+Our `reservationServer` has a type signature that constains Polysemy effects:
+
+````haskell
+reservationServer :: (Member UC.Persistence r, Member (Error UC.ReservationError) r, 
+                      Member Trace r, Member (Input Config) r) => ServerT ReservationAPI (Sem r)
+````
+
+Instead of building the `Application` instance directly, as in the simple example, 
+we use `hoistServer` lift `reservationServer` into the expected `Handler` type by running all effects and by lifting
+the business logic exception `ReservationNotPossible` into a Servant `ServerError`.
+This time we also use the State monad based interpretation of the `KVS` effect:
+
+```haskell
+initReservations :: ReservationMap
+initReservations = M.singleton day res
+  where
+    day = fromGregorian 2020 5 2
+    res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
+
+createApp :: IO Application
+createApp = do
+  kvsIORef <- newIORef initReservations
+  return (serve reservationAPI $ hoistServer reservationAPI (\sem -> interpretServer sem kvsIORef) reservationServer)
+  where
+    interpretServer sem kvsIORef =
+      sem
+        & runKvsOnMapState
+        & runStateIORef @(ReservationMap) kvsIORef
+        & runInputConst config
+        & runError @ReservationError
+        & ignoreTrace
+        & runM
+        & liftToHandler
+    liftToHandler = Handler . ExceptT . (fmap handleErrors)
+    handleErrors (Left (ReservationNotPossible msg)) = Left err412 {errBody = pack msg}
+    handleErrors (Right value) = Right value
+    config = Config {port = 8080, dbPath = "kvs.db", backend = InMemory, verbose = False}
+```
 
 ## The External Interfaces layer  
   
