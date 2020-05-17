@@ -794,7 +794,7 @@ spec =
 ```
 
 Please note that these tests don't need a deployment of the WAI application to a web server. ALl testing can be done
-within  a single process.
+within  a single process. We stick to the depency rule not to use anything from a more outward layer.
 
 The interesting part is the creation of the `Application` instance.
 
