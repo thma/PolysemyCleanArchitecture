@@ -2,10 +2,10 @@
 
 [![Actions Status](https://github.com/thma/RestaurantReservation/workflows/Haskell%20CI/badge.svg)](https://github.com/thma/RestaurantReservation/actions)
 
-> **Please Note:**
->
-> This essay is still work in progress ! 
+## Abstract
 
+This article demonstrates how the Polysemy library can be used to implement a REST application conforming to the
+guidelines of the Clean Architecture model.
 
 ## Motivation
 
@@ -344,7 +344,7 @@ fetch day = do
   return $ fromMaybe [] maybeList
 ```
 
-### declaration of effects
+### Declaration of effects
 
 To understand the `fetch` function, in particular the expression `maybeList <- getKvs day` we first have to know the 
 definition of the `Persistence` effect:
@@ -584,6 +584,9 @@ Otherwise `Aeson.decode` is called to unmarshal a result value from the JSON dat
 
 The JSON encoding and decoding to and from the DB is the reason for the `ToJSON v, FromJSON v` constraints on the value type `v`.
 
+This implementation is inpired by key-value store of
+[a password manager in Polysemy](https://haskell-explained.gitlab.io/blog/posts/2019/07/31/polysemy-is-cool-part-2/index.html).
+
 ### Declaring the REST API
 
 Our task was to build the backend for the reservation system. We will have to implement a REST API to allow access to the
@@ -675,7 +678,8 @@ As Polysemy effects are involded we will need to provide an interpretation to ac
 
 The test setup looks quite similar to the tests in the use case layer.
 
-First, we define an example use case, featuring a data type `Memo` and a set of typical CRUD operations. The CRUD 
+We want our test to evaluate the KVS implementation independently of the domain logic and the use case layer.
+Therefore, we first define an example use case, featuring a data type `Memo` and a set of typical CRUD operations. The CRUD 
 operations are using the `KVS` smart constructors and thus exhibit the typical Polysemy effect signatures:
 
 ```haskell
@@ -846,40 +850,142 @@ createApp = do
 ```
 
 ## The External Interfaces layer  
-  
-  
-  
-> Also in this layer is any other adapter necessary to convert data from some external form, 
-> such as an external service, to the internal form used by the use cases and entities.
 
+> The outermost layer is generally composed of frameworks and tools such as the Database, the Web Framework, etc. 
+> Generally you don’t write much code in this layer other than glue code that communicates to the next circle inwards.
+>  
+> This layer is where all the details go. The Web is a detail. The database is a detail. 
+> We keep these things on the outside where they can do little harm.
+> 
+> Quoted from [Clean Architecture blog post](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
+For the database we are already finished as the [SQlite-Simple](https://hackage.haskell.org/package/sqlite-simple) library
+includes the SQLLite C implementation and is thus self-contained.
+
+We will use [WARP](http://www.aosabook.org/en/posa/warp.html)  as our Web Server, which can be used as a library within
+our `Main` program. 
+What we still have to do though, is to assemble a Servant web `Application` so that it can be executed on the warp server.
+
+We have done this step already for the testing of the REST service. The `createApp` function that we define in the 
+[ApplicationAssembly module](src/ExternalInterfaces/ApplicationAssembly.hs) will look quite familiar, 
+it just provides some more bells and whistles to integrate all the features that we have developed so far.
+
+- `createApp` accepts a `Config` parameter which is used to configure application settings.
+- `selectKvsBackend` selects the concrete `KVS` interpretation.
+- `selectTraceVerbosity` selects the `Trace` interpretation:
+  
+```haskell
+-- | creates the WAI Application that can be executed by Warp.run.
+-- All Polysemy interpretations must be executed here.
+createApp :: Config -> IO Application
+createApp config = do
+  return (serve reservationAPI $ hoistServer reservationAPI (interpretServer config) reservationServer)
+  where
+    interpretServer config sem  =  sem
+      & selectKvsBackend config
+      & runInputConst config
+      & runError @ReservationError
+      & selectTraceVerbosity config
+      & runM
+      & liftToHandler
+    liftToHandler = Handler . ExceptT . (fmap handleErrors)
+    handleErrors (Left (ReservationNotPossible msg)) = Left err412 { errBody = pack msg}
+    handleErrors (Right value) = Right value
+
+-- | can select between SQLite or FileServer persistence backends.
+selectKvsBackend :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v)
+                 => Config -> Sem (KVS k v : r) a -> Sem r a
+selectKvsBackend config = case backend config of
+  SQLite     -> runKvsAsSQLite
+  FileServer -> runKvsAsFileServer
+  InMemory   -> error "not supported"
+
+-- | if the config flag verbose is set to True, trace to Console, else ignore all trace messages
+selectTraceVerbosity :: (Member (Embed IO) r) => Config -> (Sem (Trace : r) a -> Sem r a)
+selectTraceVerbosity config =
+  if verbose config
+    then traceToIO
+    else ignoreTrace
+```  
+
+The application assembly also features a function to load a `Config` instance. Typically, this would involve loading
+a YAML file or reading command line arguments. We take a short cut here and just provide a static instance:
+
+```haskell
+-- | load application config. In real life, this would load a config file or read commandline args.
+loadConfig :: IO Config
+loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs.db", verbose = True}
+```
+
+With the whole application assembly written as library code, there is not much left to do in the `Main` module:
+
+```haskell
+import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig)
+import           InterfaceAdapters.Config
+import           Network.Wai.Handler.Warp               (run)
+
+main :: IO ()
+main = do
+  config <- loadConfig
+  app    <- createApp config
+  putStrLn $ "Starting server on port " ++ show (port config)
+  run (port config) app
+```
+  
+The following diagram shows the elements added by the External Interface layer:
+- On the left we have application assembly code like `createApp` used by the `Warp` server or some of the different
+  `runPure` functions that we used in HSpec tests.
+- On the right we have the SQLite runtime library that provides access to the SQLite database
+  and the Haskell runtime in general, that provides access to the OS in general.
 
 ![External Interfaces layer](clean-architecture.png)
 
-... tbc
+### Testing
+
+Testing the application assembly is quite straightforward and resembles the testing of the REST service:
+
+
+```haskell
+loadConfig :: IO Config
+loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs-assembly.db", verbose = False}
+
+spec :: Spec
+spec =
+  with (loadConfig >>= createApp) $
+    describe "Rest Service" $ do
+
+      it "responds with 20 for a first call to GET /seats/YYYY-MM-DD" $
+        get "/seats/2020-05-02" `shouldRespondWith` "20"
+
+      it "responds with 200 for a valid POST /reservations" $
+        postJSON "/reservations" reservationData `shouldRespondWith` 200
+
+      it "responds with 200 for a call GET /reservations " $
+        get "/reservations" `shouldRespondWith` "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":12,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}]}"
+
+      it "responds with 412 if a reservation can not be done on a given day" $
+        (postJSON "/reservations" reservationData >> postJSON "/reservations" reservationData) `shouldRespondWith` 412
+
+      it "responds with 20 for a first call to GET /seats/YYYY-MM-DD" $
+        get "/seats/2020-05-02" `shouldRespondWith` "8"
+
+      it "responds with 200 for a valid DELETE /reservations" $
+        deleteJSON "/reservations" reservationData `shouldRespondWith` 200
+```
+
 ----
 
 ## Conclusion
+
 > Conforming to these simple rules is not hard, and will save you a lot of headaches going forward. 
 > By separating the software into layers, and conforming to The Dependency Rule, you will create a system 
-> that is intrinsically testable, with all the benefits that implies. When any of the external parts of the 
-> system become obsolete, like the database, or the web framework, you can replace those obsolete elements 
-> with a minimum of fuss.
+> that is **intrinsically testable**, with all the benefits that implies. When any of the external parts of the 
+> system become obsolete, like the database, or the web framework, you can **replace those obsolete elements 
+> with a minimum of fuss**.
 >
 > Quoted from the [Clean Architecture blog post](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
-----
-
-## the attic
-
-Demonstrating Clean Architecture (fkna. ports and adapters, aka. hexgonal architecture) with a simple example application.
 
 
-
-[FP vs OO](http://blog.cleancoder.com/uncle-bob/2018/04/13/FPvsOO.html)
-
-
-
-[A passwordmanager in Polysemy](https://haskell-explained.gitlab.io/blog/posts/2019/07/31/polysemy-is-cool-part-2/index.html)
 
 

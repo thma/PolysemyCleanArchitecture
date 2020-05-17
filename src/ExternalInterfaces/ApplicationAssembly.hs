@@ -27,7 +27,7 @@ createApp config = do
   return (serve reservationAPI $ hoistServer reservationAPI (interpretServer config) reservationServer)
   where
     interpretServer config sem  =  sem
-      & selectBackend config
+      & selectKvsBackend config
       & runInputConst config
       & runError @ReservationError
       & selectTraceVerbosity config
@@ -42,13 +42,9 @@ loadConfig :: IO Config
 loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs.db", verbose = True}
 
 -- | can select between SQLite or FileServer persistence backends.
-selectBackend
-  :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v)
-     => Config
-     -> Sem (KVS k v : r) a
-     -> Sem r a
-
-selectBackend config = case backend config of
+selectKvsBackend :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v)
+                 => Config -> Sem (KVS k v : r) a -> Sem r a
+selectKvsBackend config = case backend config of
   SQLite     -> runKvsAsSQLite
   FileServer -> runKvsAsFileServer
   InMemory   -> error "not supported"
