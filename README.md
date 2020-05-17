@@ -124,7 +124,7 @@ as an entry point. Robert C. Martin later also published a whole book
 [Clean Architecture: A Craftsman's Guide to Software Structure and Design](https://www.amazon.com/Clean-Architecture-Craftsmans-Software-Structure/dp/0134494164) 
 on this concept.
 
-In the following section I'll explain how the clean architecture guidelines can be implemented in a 
+In the following sections I'll explain how the clean architecture guidelines can be implemented in a 
 Haskell REST API application by making use of the algebraic effect library 
 [Polysemy](https://github.com/polysemy-research/polysemy#readme).
 
@@ -668,7 +668,104 @@ To the left we see the interpretations of the `KVS` effect (which was defined in
 
 ### Testing the KVS implementations
 
+We'll have a closer look at the [test of the SQLite implementation](test/InterfaceAdaptersKVSSQLiteSpec.hs)
+of the `KVS` effect.
 
+As Polysemy effects are involded we will need to provide an interpretation to actually perform the SQLLite operation.
+
+The test setup looks quite similar to the tests in the use case layer.
+
+First, we define an example use case, featuring a data type `Memo` and a set of typical CRUD operations. The CRUD 
+operations are using the `KVS` smart constructors and thus exhibit the typical Polysemy effect signatures:
+
+```haskell
+-- | a key value table mapping Int to a list of Strings
+type KeyValueTable = KVS Int [String]
+
+data Memo = Memo Int [String]
+    deriving (Show)
+
+persistMemo :: (Member KeyValueTable r)  => Memo -> Sem r ()
+persistMemo (Memo id lines ) = insertKvs id lines
+
+fetchMemo :: (Member KeyValueTable r) => Int -> Sem r (Maybe [String])
+fetchMemo = getKvs
+
+fetchAll :: (Member KeyValueTable r) => Sem r (M.Map Int [String])
+fetchAll = fmap M.fromList listAllKvs
+
+deleteMemo :: (Member KeyValueTable r)  => Int -> Sem r ()
+deleteMemo = deleteKvs
+```
+
+Next we define a set of helper functions that allow us to execute the CRUD operations as ordinary `IO ()` actions,
+which we can use in our test code:
+
+```haskell
+-- Helper functions for interpreting all effects in IO
+runPersist :: Memo -> IO ()
+runPersist memo = runAllEffects (persistMemo memo)
+
+runFetch :: Int -> IO (Maybe [String])
+runFetch k = runAllEffects (fetchMemo k)
+
+runFetchAll :: IO (M.Map Int [String])
+runFetchAll = runAllEffects fetchAll
+
+runDelete :: Int -> IO ()
+runDelete k = runAllEffects (deleteMemo k)
+```
+
+These wrapper function make use of the `runAllEffects` function that takes a program with effects 
+and handles each effect till it gets reduced to `IO a`:
+
+```haskell
+runAllEffects :: (forall r. Members [KeyValueTable, Input Config] r => Sem r a) -> IO a
+runAllEffects program =
+  program
+    & runKvsAsSQLite       -- use SQLite based interpretation of the (KVS Int [String]) effect
+    & runInputConst config -- use the variable config as source for (Input Config) effect
+    & ignoreTrace          -- ignore all traces
+    & runM                 -- reduce Sem r (Embed IO a) to IO a
+  where config = Config {port = 8080, dbPath = "kvs-test.db", backend = SQLite, verbose = False}
+
+-- errors are rethrown as Runtime errors, which can be verified by HSpec.
+handleErrors :: IO (Either err a) -> IO a
+handleErrors e = do
+  either <- e
+  case either of
+    Right v -> return v
+    Left _  -> error "something bad happend"
+```
+
+With these preliminaries at hand we can now write our test cases:
+
+```haskell
+key = 4711
+text = ["In the morning", "I don't drink coffee", "But lots of curcuma chai."]
+memo = Memo key text
+
+spec :: Spec
+spec =
+  describe "The KV Store SQLite Implementation" $ do
+    it "returns Nothing if nothing can be found for a given id" $ do
+      maybeMatch <- runFetch key
+      maybeMatch `shouldBe` Nothing
+
+    it "persists a key-value pair to the SQLite database" $ do
+      runPersist memo
+      maybeMatch <- runFetch key
+      maybeMatch `shouldBe` Just text
+
+    it "fetches a Map of all key-value entries from the KV store" $ do
+      map <- runFetchAll
+      M.size map `shouldBe` 1
+
+    it "deletes an entry from the key value store" $ do
+      runDelete key
+      maybeMatch <- runFetch key
+      maybeMatch `shouldBe` Nothing
+```
 
 ### Testing the REST API
 
