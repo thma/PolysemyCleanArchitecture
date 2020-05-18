@@ -1,10 +1,10 @@
-name:                RestaurantReservation
+name:                PolysemyCleanArchitecture
 version:             0.1.0.0
 github:              "githubuser/RestaurantReservation"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2020 Author name here"
+author:              "Thomas Mahler"
+maintainer:          "thma@apache.org"
+copyright:           "2020 Thomas Mahler"
 
 extra-source-files:
 - README.md
@@ -16,7 +16,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/thma/RestaurantReservation#readme>
+description:         Please see the README on GitHub at <https://github.com/thma/PolysemyCleanArchitecture#readme>
 
 ghc-options:
   - -fplugin=Polysemy.Plugin
@@ -62,25 +62,34 @@ dependencies:
 - directory
 - sqlite-simple
 
+# Swagger UI
+- servant-docs
+- servant-swagger
+- servant-swagger-ui
+- servant-swagger-ui-core
+- swagger2
+- lens
+- process
+
 library:
   source-dirs: src
   ghc-options: -O2 -flate-specialise -fspecialise-aggressively
 
 executables:
-  RestaurantReservation:
+  PolysemyCleanArchitecture:
     main:                Main.hs
     source-dirs:         app
     ghc-options: -threaded -rtsopts -with-rtsopts=-N -O2 -flate-specialise -fspecialise-aggressively
     dependencies:
-    - RestaurantReservation
+    - PolysemyCleanArchitecture
 
 tests:
-  RestaurantReservation-test:
+  PolysemyCleanArchitecture-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options: -threaded -rtsopts -with-rtsopts=-N -O2 -flate-specialise -fspecialise-aggressively
     dependencies:
-    - RestaurantReservation
+    - PolysemyCleanArchitecture
     - hspec
     - QuickCheck
     - hspec-wai

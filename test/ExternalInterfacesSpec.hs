@@ -38,12 +38,12 @@ main :: IO ()
 main = hspec spec
 
 
-loadConfig :: IO Config
-loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs-assembly.db", verbose = False}
+config :: Config
+config = Config {port = 8080, backend = SQLite, dbPath = "kvs-assembly.db", verbose = False}
 
 spec :: Spec
 spec =
-  with (loadConfig >>= createApp) $
+  with (return $ createApp config) $
     describe "Rest Service" $ do
 
       it "responds with 20 for a first call to GET /seats/YYYY-MM-DD" $

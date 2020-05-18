@@ -22,9 +22,11 @@ import           Data.Aeson.Types (ToJSON, FromJSON)
 
 -- | creates the WAI Application that can be executed by Warp.run.
 -- All Polysemy interpretations must be executed here.
-createApp :: Config -> IO Application
-createApp config = do
-  return (serve reservationAPI $ hoistServer reservationAPI (interpretServer config) reservationServer)
+createApp :: Config -> Application
+createApp config = serve reservationAPI (liftServer config)
+
+liftServer :: Config -> ServerT ReservationAPI Handler
+liftServer config = hoistServer reservationAPI (interpretServer config) reservationServer
   where
     interpretServer config sem  =  sem
       & selectKvsBackend config
@@ -36,10 +38,6 @@ createApp config = do
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
     handleErrors (Left (ReservationNotPossible msg)) = Left err412 { errBody = pack msg}
     handleErrors (Right value) = Right value
-
--- | load application config. In real life, this would load a config file or read commandline args.
-loadConfig :: IO Config
-loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs.db", verbose = True}
 
 -- | can select between SQLite or FileServer persistence backends.
 selectKvsBackend :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v)
@@ -55,3 +53,7 @@ selectTraceVerbosity config =
   if verbose config
     then traceToIO
     else ignoreTrace
+    
+-- | load application config. In real life, this would load a config file or read commandline args.
+loadConfig :: IO Config
+loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs.db", verbose = True}
