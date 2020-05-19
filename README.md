@@ -4,10 +4,11 @@
 
 ## tl;dr
 
-This article outlines how algebraic effect systems can be useful to maintain a clear separation of concerns between 
-different parts of software systems, which in turn improves the testability of those components.
+This article shows how algebraic effect systems can be used to maintain a clear separation of concerns between 
+different parts of software systems. From a practical programming perspective this improves composability and 
+testability of software components.
 
-I'm demonstrating this idea by using the Polysemy library to implement a REST application conforming to the 
+I'm demonstrating this idea by using the Polysemy library to implement a multi-layered REST application conforming to the 
 guidelines of the Clean Architecture model.
 
 ## Motivation
@@ -980,21 +981,19 @@ There is an addon available for Servant which allows to serve a [SwaggerDoc UI](
 This UI renders an automatically generated documentation of our Reservation API and even 
 allows to test all API operations directly from that UI.
 
-To launch it, please start GHCi by executing `stack repl` in the root folder of the project and
-execute `swagger`:
+You can launch it by executing `stack build --exec PolysemyCleanArchitecture` in the root folder of the project.
 
-```haskell
-λ> swagger
+This will launch the REST service and open up the Swagger UI in your Web browser: 
 
-GET all reservation: http://localhost:8080/reservations
-Swagger UI:          http://localhost:8080/swagger-ui
-```
+![Swagger UI](swaggerUI.png)
 
-This will launch the Swagger UI in your Web browser. The code for this goody can be found in the 
+The code for this goody can be found in the 
 [SwaggerUI](app/SwaggerUI.hs) module.
 
 
 ## Conclusion
+
+Robert C. Martin in his blog post writes only a few lines as conclusion:
 
 > Conforming to these simple rules is not hard, and will save you a lot of headaches going forward. 
 > By separating the software into layers, and conforming to The Dependency Rule, you will create a system 
@@ -1003,3 +1002,7 @@ This will launch the Swagger UI in your Web browser. The code for this goody can
 > with a minimum of fuss**.
 >
 > Quoted from the [Clean Architecture blog post](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+
+I have emphasized the testability aspect quite a lot in this article. However, you will have noticed that this
+approach makes it very easy to switch freely between the different effect interpretations.
+This is a huge gain in software composability.
