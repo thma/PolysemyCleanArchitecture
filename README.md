@@ -1,6 +1,6 @@
 # Implementing Clean Architecture with Haskell and Polysemy
 
-![Actions Status](https://github.com/thma/PolysemyCleanArchitecture/workflows/Haskell%20CI/badge.svg)
+[![Actions Status](https://github.com/thma/PolysemyCleanArchitecture/workflows/Haskell%20CI/badge.svg)](https://github.com/thma/PolysemyCleanArchitecture/actions)
 
 ## tl;dr
 
