@@ -150,7 +150,7 @@ data Reservation = Reservation
     { date     :: Day    -- ^ the date of the reservation
     , name     :: String -- ^ the name of the guest placing the reservation
     , email    :: String -- ^ the email address of the guest
-    , quantity :: Int    -- ^ how many seats are requested
+    , quantity :: Natural    -- ^ how many seats are requested
     }
     deriving (Eq, Generic, Read, Show)
 ```
@@ -190,7 +190,7 @@ Based on these data types we can define domain logic like computing the used cap
 
 ```haskell
 -- | computes the number of reserved seats for a list of reservations
-usedCapacity :: [Reservation] -> Int
+usedCapacity :: [Reservation] -> Natural
 usedCapacity [] = 0
 usedCapacity (Reservation _ _ _ quantity : rest) = quantity + usedCapacity rest
 ```
@@ -199,7 +199,7 @@ Based on this we can compute the number of available seats (given a maximum capa
 
 ```haskell
 -- | computes the number of available seats from a maximum capacity and a list of reservations.
-availableSeats :: Int-> [Reservation] -> Int
+availableSeats :: Natural-> [Reservation] -> Natural
 availableSeats maxCapacity reservations = maxCapacity - usedCapacity reservations
 ```
 
@@ -289,7 +289,7 @@ Let's see how this looks like when using Polysemy to specify effects.
 
 ```haskell
 -- | compute the number of available seats for a given day.
-availableSeats :: (Member Persistence r, Member Trace r) => Day -> Sem r Int
+availableSeats :: (Member Persistence r, Member Trace r) => Day -> Sem r Natural
 availableSeats day = do
   trace $ "compute available seats for " ++ show day
   todaysReservations <- fetch day
@@ -304,7 +304,7 @@ fetch day = do
   return $ fromMaybe [] maybeList
 
 -- | the maximum capacity of the restaurant.
-maxCapacity :: Int
+maxCapacity :: Natural
 maxCapacity = 20
 ```
 
@@ -312,7 +312,7 @@ The type signature of `availableSeats` contains two constraints on the *effect s
 This means that the function may perform two different effects: persistence via the `Persistence` effect and 
 Logging via the `Trace` effect.
 
-The type signature also specifies that we need an input of type `Day` and will return the `Int` result
+The type signature also specifies that we need an input of type `Day` and will return the `Natural` result
 wrapped in the `Sem r` monad.
 
 The `Sem` monad handles computations of arbitrary extensible effects.
@@ -393,7 +393,7 @@ The function finally uses `fromMaybe` to return a list of reservations that were
 was found for `day`).
 
 Then, back in `availableSeats` we call the domain logic function `Dom.availableSeats` to compute the number of available seats.
-The resulting `Int` value is lifted into the `Sem r` monad, thus matching the signature of the return type `Sem r Int`.
+The resulting `Natural` value is lifted into the `Sem r` monad, thus matching the signature of the return type `Sem r Natural`.
 
 In the next diagram I'm depicting the layers Use Cases and Domain. The arrow from Use Cases to Domain represents the dependency
 rule: use case code may only reference domain logic but nothing from outer layers.
@@ -439,7 +439,7 @@ the actual use case functions (eg. `UC.availableSeats`) and extract the actual r
 `[Either UC.ReservationError (ReservationMap, a)]` return value:
 
 ```haskell
-runAvailableSeats :: ReservationMap -> Day -> Int
+runAvailableSeats :: ReservationMap -> Day -> Natural
 runAvailableSeats kvsMap day = do
   case runPure kvsMap (UC.availableSeats day) of
     [Right (_, numSeats)] -> numSeats
@@ -632,7 +632,7 @@ type ReservationAPI =
                       
   :<|> "seats"        :> Summary "retrieve number of free seats for a given day"
                       :> Capture "day" Day
-                      :> Get     '[ JSON] Int                -- GET    /seats/YYYY-MM-DD
+                      :> Get     '[ JSON] Natural                -- GET    /seats/YYYY-MM-DD
 ```
 
 Next we have to create the connection between the declared routes and the actual business logic. This will be our
@@ -683,7 +683,7 @@ Therefore, we first define an example use case, featuring a data type `Memo` and
 operations are using the `KVS` smart constructors and thus exhibit the typical Polysemy effect signatures:
 
 ```haskell
--- | a key value table mapping Int to a list of Strings
+-- | a key value table mapping Natural to a list of Strings
 type KeyValueTable = KVS Int [String]
 
 data Memo = Memo Int [String]

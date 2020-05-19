@@ -17,6 +17,7 @@ import qualified Data.Map.Strict    as M
 import           Data.Time.Calendar
 import           Data.Time.Clock
 import           GHC.Generics
+import           Numeric.Natural
 
 {--
 This module implements the business logic for seat reservations in a very small boutique restaurant.
@@ -29,10 +30,10 @@ This makes it easy to test them in isolation.
 
 -- | a data type representing a reservation
 data Reservation = Reservation
-    { date     :: Day    -- ^ the date of the reservation
-    , name     :: String -- ^ the name of the guest placing the reservation
-    , email    :: String -- ^ the email address of the guest
-    , quantity :: Int    -- ^ how many seats are requested
+    { date     :: Day     -- ^ the date of the reservation
+    , name     :: String  -- ^ the name of the guest placing the reservation
+    , email    :: String  -- ^ the email address of the guest
+    , quantity :: Natural -- ^ how many seats are requested
     }
     deriving (Eq, Generic, Read, Show)
 
@@ -40,18 +41,18 @@ data Reservation = Reservation
 type ReservationMap = M.Map Day [Reservation]
 
 -- | computes the number of reserved seats for a list of reservations
-usedCapacity :: [Reservation] -> Int
+usedCapacity :: [Reservation] -> Natural
 usedCapacity [] = 0
 usedCapacity (Reservation _ _ _ quantity : rest) = quantity + usedCapacity rest
 
 -- | check whether it is possible to add a reservation to the table.
 -- | Return True if successful, else return False
-isReservationPossible :: Reservation -> [Reservation] -> Int -> Bool
+isReservationPossible :: Reservation -> [Reservation] -> Natural -> Bool
 isReservationPossible res@(Reservation date _ _ requestedSeats) reservationsOnDay maxCapacity =
   availableSeats maxCapacity reservationsOnDay >= requestedSeats
 
 -- | computes the number of available seats from a maximum capacity and a list of reservations.
-availableSeats :: Int-> [Reservation] -> Int
+availableSeats :: Natural-> [Reservation] -> Natural
 availableSeats maxCapacity reservations = maxCapacity - usedCapacity reservations
 
 -- | add a reservation to

@@ -27,6 +27,7 @@ import           Polysemy.Error
 import           Polysemy.Input           (Input, input)
 import           Polysemy.Trace           (Trace, trace)
 import           UseCases.KVS             (KVS, getKvs, insertKvs, listAllKvs)
+import           Numeric.Natural
 
 {--
 This module specifies the Use Case layer for the Reservation system.
@@ -66,7 +67,7 @@ newtype ReservationError = ReservationNotPossible String deriving (Show, Eq)
 
 -- | compute the number of available seats for a given day.
 -- | Implements UseCase 1.
-availableSeats :: (Member Persistence r, Member Trace r) => Day -> Sem r Int
+availableSeats :: (Member Persistence r, Member Trace r) => Day -> Sem r Natural
 availableSeats day = do
   trace $ "compute available seats for " ++ show day
   todaysReservations <- fetch day
@@ -75,7 +76,7 @@ availableSeats day = do
 -- | the maximum capacity of the restaurant.
 -- | to keep things simple this just a constant value of 20.
 -- | In real life this would kept persistent in a database, and would be accessed by yet another abstract effect.
-maxCapacity :: Int
+maxCapacity :: Natural
 maxCapacity = 20
 
 -- | try to add a reservation to the table.

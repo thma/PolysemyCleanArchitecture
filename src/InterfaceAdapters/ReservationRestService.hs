@@ -14,6 +14,7 @@ import           Data.Time.Calendar          (Day)
 import qualified Domain.ReservationDomain    as Dom (Reservation,
                                                      ReservationMap)
 import           InterfaceAdapters.Config   (Config)
+import           Numeric.Natural
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.Input              (Input)
@@ -48,7 +49,7 @@ type ReservationAPI =
                       
   :<|> "seats"        :> Summary "retrieve number of free seats for a given day"
                       :> Capture "day" Day
-                      :> Get     '[ JSON] Int                -- GET    /seats/YYYY-MM-DD
+                      :> Get     '[ JSON] Natural            -- GET    /seats/YYYY-MM-DD
 
 -- | implements the ReservationAPI
 reservationServer :: (Member UC.Persistence r, Member (Error UC.ReservationError) r, 

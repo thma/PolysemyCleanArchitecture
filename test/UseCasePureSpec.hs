@@ -8,6 +8,7 @@ import qualified Data.Map.Strict                as M
 import           Data.Time.Calendar
 import           Domain.ReservationDomain
 import           InterfaceAdapters.KVSInMemory
+import           Numeric.Natural
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.Input                 (Input, runInputConst)
@@ -32,7 +33,7 @@ runPure kvsMap program =
 
 -- Helper functions for interpreting all effects in a pure way. That is no IO !
 
-runAvailableSeats :: ReservationMap -> Day -> Int
+runAvailableSeats :: ReservationMap -> Day -> Natural
 runAvailableSeats kvsMap day = do
   case runPure kvsMap (UC.availableSeats day) of
     [Right (_, numSeats)] -> numSeats
