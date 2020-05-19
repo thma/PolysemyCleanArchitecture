@@ -2,9 +2,12 @@
 
 ![Actions Status](https://github.com/thma/PolysemyCleanArchitecture/workflows/Haskell%20CI/badge.svg)
 
-## Abstract
+## tl;dr
 
-This article demonstrates how the Polysemy library can be used to implement a REST application conforming to the
+This article outlines how algebraic effect systems can be useful to maintain a clear separation of concerns between 
+different parts of software systems, which in turn improves the testability of those components.
+
+I'm demonstrating this idea by using the Polysemy library to implement a REST application conforming to the 
 guidelines of the Clean Architecture model.
 
 ## Motivation
