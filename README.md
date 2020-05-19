@@ -106,6 +106,8 @@ The architecture consists of four layers, each of which contains components with
 > dependencies can only point inwards. Nothing in an inner circle can know anything at all about something in an outer 
 > circle. In particular, the name of something declared in an outer circle must not be mentioned by the code in the an 
 > inner circle. That includes, functions, classes. variables, or any other named software entity.
+>
+> Quoted from [Clean Architecture blog post](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
 This dependency rule leads to a very interesting consequence: If a use case interactor needs to 
 access a component from an outer circle, e.g. retrieve data from a database, this must be done
@@ -599,7 +601,7 @@ The following tyble shows the mapping of those functions to the REST routes that
 listAll        GET    /reservations
 fetch          GET    /reservations/YYYY-MM-DD
 tryReservation POST   /reservations
-UC.cancel      DELETE /reservations
+cancel         DELETE /reservations
 availableSeats GET    /seats/YYYY-MM-DD
 ```
 I'm using [Servant](http://www.servant.dev/) to define our REST API.
@@ -818,26 +820,21 @@ reservationServer :: (Member UC.Persistence r, Member (Error UC.ReservationError
 ````
 
 Instead of building the `Application` instance directly, as in the simple example, 
-we use `hoistServer` to lift `reservationServer` into the expected `Handler` type by running all effects and by lifting
-the business logic exception `ReservationNotPossible` into a Servant `ServerError`.
-This time we also use the State monad based interpretation of the `KVS` effect:
+we use `liftServer` to lift `reservationServer` into the required `ServerT ReservationAPI Handler` 
+type by running all effects and by lifting the business logic exception `ReservationNotPossible` 
+into a Servant `ServerError`.
+This time we also use the SQLite based interpretation of the `KVS` effect:
 
 ```haskell
-initReservations :: ReservationMap
-initReservations = M.singleton day res
-  where
-    day = fromGregorian 2020 5 2
-    res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
+createApp :: Config -> IO Application
+createApp config = return $ serve reservationAPI (liftServer config)
 
-createApp :: IO Application
-createApp = do
-  kvsIORef <- newIORef initReservations
-  return (serve reservationAPI $ hoistServer reservationAPI (\sem -> interpretServer sem kvsIORef) reservationServer)
+liftServer :: Config -> ServerT ReservationAPI Handler
+liftServer config = hoistServer reservationAPI (interpretServer config) reservationServer
   where
-    interpretServer sem kvsIORef =
+    interpretServer config sem =
       sem
-        & runKvsOnMapState
-        & runStateIORef @(ReservationMap) kvsIORef
+        & runKvsAsSQLite
         & runInputConst config
         & runError @ReservationError
         & ignoreTrace
@@ -846,7 +843,6 @@ createApp = do
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
     handleErrors (Left (ReservationNotPossible msg)) = Left err412 {errBody = pack msg}
     handleErrors (Right value) = Right value
-    config = Config {port = 8080, dbPath = "kvs.db", backend = InMemory, verbose = False}
 ```
 
 ## The External Interfaces layer  

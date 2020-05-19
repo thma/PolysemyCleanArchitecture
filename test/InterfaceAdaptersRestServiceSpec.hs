@@ -12,7 +12,7 @@ import qualified Data.Map.Strict                 as M
 import           Data.Time.Calendar
 import           InterfaceAdapters.ReservationRestService
 import           InterfaceAdapters.Config
-import           InterfaceAdapters.KVSInMemory
+import           InterfaceAdapters.KVSSqlite     (runKvsAsSQLite)
 import           Network.HTTP.Types.Header       (hContentType)
 import           Network.HTTP.Types.Method       (methodDelete, methodPost)
 import qualified Network.Wai.Handler.Warp        as W
@@ -27,25 +27,15 @@ import           Test.Hspec
 import           Test.Hspec.Wai
 import           UseCases.ReservationUseCase
 
-
-initReservations :: ReservationMap
-initReservations = M.singleton day res
-  where
-    day = fromGregorian 2020 5 2
-    res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
-
 createApp :: Config -> IO Application
-createApp config = do
-  kvsIORef <- newIORef initReservations
-  return $ serve reservationAPI (liftServer config kvsIORef)
+createApp config = return $ serve reservationAPI (liftServer config)
 
-liftServer :: Config -> IORef ReservationMap -> ServerT ReservationAPI Handler
-liftServer config kvsIORef = hoistServer reservationAPI (interpretServer config kvsIORef) reservationServer
+liftServer :: Config -> ServerT ReservationAPI Handler
+liftServer config = hoistServer reservationAPI (interpretServer config) reservationServer
   where
-    interpretServer config kvsIORef sem =
+    interpretServer config sem =
       sem
-        & runKvsOnMapState
-        & runStateIORef @(ReservationMap) kvsIORef
+        & runKvsAsSQLite
         & runInputConst config
         & runError @ReservationError
         & ignoreTrace
@@ -54,7 +44,6 @@ liftServer config kvsIORef = hoistServer reservationAPI (interpretServer config 
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
     handleErrors (Left (ReservationNotPossible msg)) = Left err412 {errBody = pack msg}
     handleErrors (Right value) = Right value
-
 
 reservationData :: LB.ByteString
 reservationData = "{\"email\":\"amjones@example.com\",\"quantity\":10,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}"
@@ -69,14 +58,18 @@ spec :: Spec
 spec =
   with (createApp config) $
     describe "Rest Service" $ do
-      it "responds with 200 for a call GET /reservations " $
-        get "/reservations" `shouldRespondWith` 
-          "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":4,\"date\":\"2020-05-02\",\"name\":\"Andrew M. Jones\"}]}"
+      it "responds with 200 for a call GET /seats " $
+        get "/seats/2020-05-02" `shouldRespondWith` "20"
       it "responds with 200 for a valid POST /reservations" $
         postJSON "/reservations" reservationData `shouldRespondWith` 200
+      it "responds with 200 for a call GET /reservations " $
+        get "/reservations" `shouldRespondWith` expected
       it "responds with 412 if a reservation can not be done on a given day" $
         (postJSON "/reservations" reservationData >> postJSON "/reservations" reservationData) `shouldRespondWith` 412
       it "responds with 200 for a valid DELETE /reservations" $
-        deleteJSON "/reservations" reservationData `shouldRespondWith` 200
+        (deleteJSON "/reservations" reservationData >> deleteJSON "/reservations" reservationData) `shouldRespondWith` 200
+      it "responds with 200 for a call GET /seats " $
+        get "/seats/2020-05-02" `shouldRespondWith` "20"
   where
-    config = Config {port = 8080, dbPath = "kvs.db", backend = InMemory, verbose = False}
+    config = Config {port = 8080, dbPath = "kvs-ia-test.db", backend = SQLite, verbose = False}
+    expected = "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":10,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}]}"
