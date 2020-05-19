@@ -35,9 +35,9 @@ type ReservationAPI =
        "reservations" :> Summary "retrieve a map of all reservations (Day -> [Reservation])"
                       :> Get     '[ JSON] Dom.ReservationMap -- GET    /reservations
 
-  :<|> "reservations" :> Summary "retrieve list of reservations for a given day"
-                      :> Capture "day" Day
-                      :> Get     '[ JSON] [Dom.Reservation]  -- GET    /reservations/YYYY-MM-DD
+  :<|> "reservations" :> Summary  "retrieve list of reservations for a given day"
+                      :> Capture' '[Description "YYYY-MM-DD"] "day" Day
+                      :> Get      '[ JSON] [Dom.Reservation]  -- GET    /reservations/YYYY-MM-DD
 
   :<|> "reservations" :> Summary "place a new reservation"
                       :> ReqBody '[ JSON] Dom.Reservation
@@ -47,9 +47,9 @@ type ReservationAPI =
                       :> ReqBody '[ JSON] Dom.Reservation
                       :> Delete  '[ JSON] ()                 -- DELETE /reservations
                       
-  :<|> "seats"        :> Summary "retrieve number of free seats for a given day"
-                      :> Capture "day" Day
-                      :> Get     '[ JSON] Natural            -- GET    /seats/YYYY-MM-DD
+  :<|> "seats"        :> Summary  "retrieve number of free seats for a given day"
+                      :> Capture' '[Description "YYYY-MM-DD"] "day" Day
+                      :> Get      '[ JSON] Natural            -- GET    /seats/YYYY-MM-DD
 
 -- | implements the ReservationAPI
 reservationServer :: (Member UC.Persistence r, Member (Error UC.ReservationError) r, 
