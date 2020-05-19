@@ -977,7 +977,8 @@ spec =
 
 For all those who have been patient enough to stay with me until here, I now have a little bonus.
 
-There is an addon available for Servant which allows to serve a [SwaggerDoc UI](https://swagger.io/tools/swagger-ui/). 
+There is a [servant-swagger-ui addon](https://github.com/haskell-servant/servant-swagger-ui) available 
+which allows to serve a [SwaggerDoc UI](https://swagger.io/tools/swagger-ui/) for any Servant API. 
 This UI renders an automatically generated documentation of our Reservation API and even 
 allows to test all API operations directly from that UI.
 
@@ -993,7 +994,7 @@ The code for this goody can be found in the
 
 ## Conclusion
 
-Robert C. Martin in his blog post writes only a few lines as conclusion:
+Robert C. Martin concludes his blog post with a brief summary:
 
 > Conforming to these simple rules is not hard, and will save you a lot of headaches going forward. 
 > By separating the software into layers, and conforming to The Dependency Rule, you will create a system 
@@ -1003,6 +1004,6 @@ Robert C. Martin in his blog post writes only a few lines as conclusion:
 >
 > Quoted from the [Clean Architecture blog post](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
-I have emphasized the testability aspect quite a lot in this article. However, you will have noticed that this
+I have emphasized the testability aspect quite a lot in this article. However, you will also have noticed that this 
 approach makes it very easy to switch freely between the different effect interpretations.
 This is a huge gain in software composability.
