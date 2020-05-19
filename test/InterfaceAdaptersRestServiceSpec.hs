@@ -34,12 +34,15 @@ initReservations = M.singleton day res
     day = fromGregorian 2020 5 2
     res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
 
-createApp :: IO Application
-createApp = do
+createApp :: Config -> IO Application
+createApp config = do
   kvsIORef <- newIORef initReservations
-  return (serve reservationAPI $ hoistServer reservationAPI (\sem -> interpretServer sem kvsIORef) reservationServer)
+  return $ serve reservationAPI (liftServer config kvsIORef)
+
+liftServer :: Config -> IORef ReservationMap -> ServerT ReservationAPI Handler
+liftServer config kvsIORef = hoistServer reservationAPI (interpretServer config kvsIORef) reservationServer
   where
-    interpretServer sem kvsIORef =
+    interpretServer config kvsIORef sem =
       sem
         & runKvsOnMapState
         & runStateIORef @(ReservationMap) kvsIORef
@@ -51,7 +54,6 @@ createApp = do
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
     handleErrors (Left (ReservationNotPossible msg)) = Left err412 {errBody = pack msg}
     handleErrors (Right value) = Right value
-    config = Config {port = 8080, dbPath = "kvs.db", backend = InMemory, verbose = False}
 
 
 reservationData :: LB.ByteString
@@ -65,13 +67,16 @@ main = hspec spec
 
 spec :: Spec
 spec =
-  with (createApp) $
+  with (createApp config) $
     describe "Rest Service" $ do
       it "responds with 200 for a call GET /reservations " $
-        get "/reservations" `shouldRespondWith` "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":4,\"date\":\"2020-05-02\",\"name\":\"Andrew M. Jones\"}]}"
+        get "/reservations" `shouldRespondWith` 
+          "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":4,\"date\":\"2020-05-02\",\"name\":\"Andrew M. Jones\"}]}"
       it "responds with 200 for a valid POST /reservations" $
         postJSON "/reservations" reservationData `shouldRespondWith` 200
       it "responds with 412 if a reservation can not be done on a given day" $
         (postJSON "/reservations" reservationData >> postJSON "/reservations" reservationData) `shouldRespondWith` 412
       it "responds with 200 for a valid DELETE /reservations" $
         deleteJSON "/reservations" reservationData `shouldRespondWith` 200
+  where
+    config = Config {port = 8080, dbPath = "kvs.db", backend = InMemory, verbose = False}

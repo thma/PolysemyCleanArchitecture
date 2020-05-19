@@ -818,7 +818,7 @@ reservationServer :: (Member UC.Persistence r, Member (Error UC.ReservationError
 ````
 
 Instead of building the `Application` instance directly, as in the simple example, 
-we use `hoistServer` lift `reservationServer` into the expected `Handler` type by running all effects and by lifting
+we use `hoistServer` to lift `reservationServer` into the expected `Handler` type by running all effects and by lifting
 the business logic exception `ReservationNotPossible` into a Servant `ServerError`.
 This time we also use the State monad based interpretation of the `KVS` effect:
 
