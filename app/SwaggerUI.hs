@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators     #-}
-module SwaggerRestService where
+module SwaggerUI where
 
 import           Control.Lens
 import           Data.Aeson                               (toJSON)
@@ -27,7 +27,7 @@ import           System.Process                           (ProcessHandle,
 -- | Swagger spec of Model type 'Reservation'
 instance ToSchema Reservation where
     declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
-      & mapped.schema.description ?~ "This is a Reservation API"
+      & mapped.schema.description ?~ "a data type representing a restaurant reservation"
       & mapped.schema.example ?~ toJSON (Reservation (read "2020-05-29") "Max Muster" "mm@muster.com" 4)
 
 -- | Swagger spec for user API.
@@ -58,15 +58,14 @@ createSwaggerApp :: Config -> Application
 createSwaggerApp config = serve api (server config)
 
 -- | start up server and launch browser on swagger UI
-up :: IO ()
-up = do
+swagger :: IO ()
+swagger = do
   config <- loadConfig
   let p = port config
   putStrLn $ "GET all reservation: http://localhost:" ++ show p ++ "/reservations"
   putStrLn $ "Swagger UI:          http://localhost:" ++ show p ++ "/swagger-ui"
-  launchSiteInBrowser p
+  launchSiteInBrowser p  -- this line will try to open a browser and direct it to the Swagger UI
   run p (createSwaggerApp config)
-
 
 -- | convenience function that opens the swagger UI in the default web browser
 launchSiteInBrowser:: Int -> IO ()

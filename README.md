@@ -969,7 +969,27 @@ spec =
         deleteJSON "/reservations" reservationData `shouldRespondWith` 200
 ```
 
-----
+## Swagger Documentation
+
+For all those who have been patient enough to stay with me until here, I now have a little bonus.
+
+There is an addon available for Servant which allows to serve a [SwaggerDoc UI](https://swagger.io/tools/swagger-ui/). 
+This UI renders an automatically generated documentation of our Reservation API and even 
+allows to test all API operations directly from that UI.
+
+To launch it, please start GHCi by executing `stack repl` in the root folder of the project and
+execute `swagger`:
+
+```haskell
+λ> swagger
+
+GET all reservation: http://localhost:8080/reservations
+Swagger UI:          http://localhost:8080/swagger-ui
+```
+
+This will launch the Swagger UI in your Web browser. The code for this goody can be found in the 
+[SwaggerUI](app/SwaggerUI.hs) module.
+
 
 ## Conclusion
 
@@ -980,8 +1000,3 @@ spec =
 > with a minimum of fuss**.
 >
 > Quoted from the [Clean Architecture blog post](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-
-
-
-
-
