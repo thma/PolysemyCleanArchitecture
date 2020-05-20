@@ -477,16 +477,16 @@ This layer holds code for adapters to external resources like databases, message
 configuration, Logging, etc.
 
 The Logging effect `Trace` ships with Polysemy, so we don't have to implement anything here.
-(Of course we could overzealously implement our own Graylog adapter here, 
+(Of course we could overzealously implement our own Graylog adapter here, Hingegen hat unser `reservationServer` eine Typensignatur 
 but I leave this as an exercise for the reader... )
 
-But as the `KVS` type is our own invention we have to provide our own implementations.
-(Of course, we could have used the `KVStore` type from [polysemy-zoo](https://hackage.haskell.org/package/polysemy-zoo-0.7.0.0/docs/Polysemy-KVStore.html),
+However, as the `KVS` type is our own invention we'll have to provide our own implementations.
+(We could have used the `KVStore` type from [polysemy-zoo](https://hackage.haskell.org/package/polysemy-zoo-0.7.0.0/docs/Polysemy-KVStore.html),
 but for didactic purposes we will roll our own.)
 
 The following code is the in-memory 
 implementation from the [KVSInMemory](src/InterfaceAdapters/KVSInMemory.hs) module.
-It defines a key-value store in term of `State (Map k v)` that is a `Map k v` in a `State` effect context:
+It defines a key-value store in terms of `State (Map k v)` that is a `Map k v` in a `State` effect context:
 
 ```haskell
 runKvsOnMapState :: ( Member (State (M.Map k v)) r, Ord k) 
@@ -500,7 +500,7 @@ runKvsOnMapState = interpret $ \case
 ```
 
 So whenever the `interpret` functions detects a `GetKvs k` value, that was constructed by a call to `getKvs k` in the use case layer,
-it pattern matches it to a Map lookup of `k` that is executed against state retrieved by `get`.
+it pattern-matches it to a `Map` lookup of `k` that is executed against state retrieved by `get`.
  
 Interestingly `get` is a smart constructor of the `State` effect. This means that by interpreting the `KVS` we have
 created new effects that in turn have to be interpreted. 
@@ -520,7 +520,7 @@ runKvsPure map = runState map . runKvsOnMapState
 ### A key-value store with a SQLite backend.
 
 As we are in the interface adapters layer, we are allowed to get our hands dirty with
-*real world code*, like database access. As an example I have provided a SQLite based interpretaion of the `KVS` effect
+*real world code*, like database access. As an example I have provided a SQLite based interpretation of the `KVS` effect
 in [KVSSqllite.hs](src/InterfaceAdapters/KVSSqlite.hs).
 
 The effect interpreting function is `runKvsAsSQLite`:
@@ -590,7 +590,7 @@ Otherwise `Aeson.decode` is called to unmarshal a result value from the JSON dat
 
 The JSON encoding and decoding to and from the DB is the reason for the `ToJSON v, FromJSON v` constraints on the value type `v`.
 
-This implementation is inpired by key-value store of
+This implementation is inspired by key-value store of
 [a password manager in Polysemy](https://haskell-explained.gitlab.io/blog/posts/2019/07/31/polysemy-is-cool-part-2/index.html).
 
 ### Declaring the REST API
@@ -598,8 +598,8 @@ This implementation is inpired by key-value store of
 Our task was to build the backend for the reservation system. We will have to implement a REST API to allow access to the
 business logic that we defined in the use case layer.
 
-The overall idea is to provide a REST route for all of the exposed functions of the `ReservationUseCase`.
-The following tyble shows the mapping of those functions to the REST routes that we want to map them to:
+The overall idea is to provide a REST route for all exposed functions of the `ReservationUseCase`.
+The following table shows the mapping of those functions to the REST routes that we want to achieve:
 
 ```
 listAll        GET    /reservations
@@ -608,6 +608,7 @@ tryReservation POST   /reservations
 cancel         DELETE /reservations
 availableSeats GET    /seats/YYYY-MM-DD
 ```
+
 I'm using [Servant](http://www.servant.dev/) to define our REST API.
 The great thing about Servant is that it allows us to define REST APIs in a typesafe manner by using a
 type level DSL.
@@ -665,13 +666,14 @@ the use case controllers.
 We **just tell what we want**: a mapping from the routes to the controller functions.
 That's all!
 
-In the following diagram, we now see the third layer. Again, the Interface Adapters layer may only reference code from the
-inner layers.
-To the right we see the `ReservationAPI` and its `reservationServer` implementation, which we just explored. They interface with
+In the following diagram, we now see the third layer. Again, the arrow symbolises the dependency rule, which prohibits
+access from domain or use case layer to the interface adapters layer.
+To the right we see the `ReservationAPI` and its `reservationServer` implementation, which we just explored. They interact with
 the use case controller functions like `availableSeats`, `listAll`, etc.
 
 To the left we see the interpretations of the `KVS` effect (which was defined in the use case layer): `KVSInMemory`, 
-`KVSSqlite` (and a third one `KVSFileServer`, a file based implementation which you might explore on your own).
+`KVSSqlite` (and a third one `KVSFileServer`, a file based implementation which you could
+[explore on your own](src/InterfaceAdapters/KVSFileServer.hs)).
 
 ![Interface Adapters layer](interface-adapters.png)
 
@@ -804,11 +806,11 @@ spec =
 ```
 
 Please note that these tests don't need a deployment of the WAI application to a web server. ALl testing can be done
-within  a single process. We stick to the depency rule not to use anything from a more outward layer.
+within  a single process. We stick to the dependency rule not to use anything from a more outward layer.
 
 The interesting part is the creation of the `Application` instance.
 
-If we had a simple implementation `myServer` of a REST API `myApi`, which does not use any Polysemy effetcs, then we
+If we had a simple implementation `myServer` of a REST API `myApi`, not using any Polysemy effects, we
 could create an `Application` instance like so:
 
 ```haskell
@@ -816,7 +818,7 @@ createSimpleApp :: Application
 createSimpleApp ::= serve myApi myServer
 ```
 
-Our `reservationServer` has a type signature that constains Polysemy effects:
+In contrast, our `reservationServer` has a type signature that contains Polysemy effects:
 
 ````haskell
 reservationServer :: (Member UC.Persistence r, Member (Error UC.ReservationError) r, 
@@ -860,7 +862,7 @@ liftServer config = hoistServer reservationAPI (interpretServer config) reservat
 > Quoted from [Clean Architecture blog post](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
 For the database we are already finished as the [SQlite-Simple](https://hackage.haskell.org/package/sqlite-simple) library
-includes the SQLLite C implementation and is thus self-contained.
+includes the SQLLite C runtime library and is thus self-contained.
 
 We will use [WARP](http://www.aosabook.org/en/posa/warp.html)  as our Web Server, which can be used as a library within
 our `Main` program. 
@@ -876,7 +878,6 @@ it just provides some more bells and whistles to integrate all the features that
   
 ```haskell
 -- | creates the WAI Application that can be executed by Warp.run.
--- All Polysemy interpretations must be executed here.
 createApp :: Config -> IO Application
 createApp config = do
   return (serve reservationAPI $ hoistServer reservationAPI (interpretServer config) reservationServer)
@@ -909,7 +910,7 @@ selectTraceVerbosity config =
 ```  
 
 The application assembly also features a function to load a `Config` instance. Typically, this would involve loading
-a YAML file or reading command line arguments. We take a short cut here and just provide a static instance:
+a configuration file or reading command line arguments. We take a shortcut here and just provide a static instance:
 
 ```haskell
 -- | load application config. In real life, this would load a config file or read commandline args.
@@ -936,14 +937,13 @@ The following diagram shows the elements added by the External Interface layer:
 - On the left we have application assembly code like `createApp` used by the `Warp` server or some of the different
   `runPure` functions that we used in HSpec tests.
 - On the right we have the SQLite runtime library that provides access to the SQLite database
-  and the Haskell runtime in general, that provides access to the OS in general.
+  and the Haskell runtime in general, which provides access to the filesystem and the OS in general.
 
 ![External Interfaces layer](clean-architecture.png)
 
 ### Testing
 
 Testing the application assembly is quite straightforward and resembles the testing of the REST service:
-
 
 ```haskell
 loadConfig :: IO Config
@@ -980,7 +980,7 @@ For all those who have been patient enough to stay with me until here, I now hav
 There is a [servant-swagger-ui addon](https://github.com/haskell-servant/servant-swagger-ui) available 
 which allows to serve a [SwaggerDoc UI](https://swagger.io/tools/swagger-ui/) for any Servant API. 
 This UI renders an automatically generated documentation of our Reservation API and even 
-allows to test all API operations directly from that UI.
+allows to test all API operations directly.
 
 You can launch it by executing `stack build --exec PolysemyCleanArchitecture` in the root folder of the project.
 
@@ -1004,6 +1004,10 @@ Robert C. Martin concludes his blog post with a brief summary:
 >
 > Quoted from the [Clean Architecture blog post](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
-I have emphasized the testability aspect quite a lot in this article. However, you will also have noticed that this 
-approach makes it very easy to switch freely between the different effect interpretations.
-This is a huge gain in software composability.
+I have emphasized the testability aspect quite a lot in this article. However, this 
+approach allows switching freely between alternative backends in production environments as well.
+
+As we have seen Polysemy &mdash; or algebraic effect systems in general &mdash; make this possible by the separation of
+effect declaration and effect interpretation.
+
+Furthermore, Polysemy also allows you to freely combine several effects. This is a huge gain in software composability.
