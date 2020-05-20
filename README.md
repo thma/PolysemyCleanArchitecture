@@ -1008,6 +1008,6 @@ I have emphasized the testability aspect quite a lot in this article. However, t
 approach allows switching freely between alternative backends in production environments as well.
 
 As we have seen Polysemy &mdash; or algebraic effect systems in general &mdash; make this possible by the separation of
-effect declaration and effect interpretation.
+effect *declaration*, effect *usage* and effect *interpretation*.
 
 Furthermore, Polysemy also allows you to freely combine several effects. This is a huge gain in software composability.
