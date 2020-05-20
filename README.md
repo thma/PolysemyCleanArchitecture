@@ -35,7 +35,7 @@ Maybe it's not a principle issue but just my brain being too small...
 
 I was desperately looking for something that allowed me to combine different types of effects 
 (like persistence, logging, configuration, http handlers, error handling, etc.) in controllers and handlers but still to be able to
-write tests that allow using mocks and stubs.
+write tests that allow using mocks or stubs to test components in isolation.
 
 As I reached a dead end, I had a look at some of the *algebraic effect systems* available in Haskell, like 
 eff, extensible-effects, fused-effects, freer-simple and Polysemy. 
@@ -87,20 +87,19 @@ according to the actual needs. This avoids "vendor lock in".
 
 5. The Business logic is agnostic of the outside world. It has no dependencies to any external systems like DB, ESB, etc.
  
-<!-- 
-He tries to condense the essence of the different approaches into a single big picture:
-
-![the big picture](https://blog.cleancoder.com/uncle-bob/images/2012-08-13-the-clean-architecture/CleanArchitecture.jpg) 
- -->
 ### Layers with clearly separated responsibilities
  
 The architecture consists of four layers, each of which contains components with a specific scope and a limited set of responsibilities.
 
 1. At the centre sits the **Domain** layer consisting of entities and core business logic.
+
 2. Next comes the **Use Cases** layer where all resources are coordinated that are required to fulfill a given use case.
-   In particular, it uses entities and logic from the domain layer to implement use cases.
+   In particular, it uses entities and logic from the domain layer to implement use cases. But typically it must also 
+   interface to a persistent storage to retrieve and store entities.
+   
 3. The **Interface Adapters** layer holds code for UI controllers and presenters as well as adapters to external 
    resources like databases, message queues, configuration, Logging, etc.
+   
 4. The **External Interfaces** layer contains the technical implementation of external interfaces. For example,
    a concrete REST service assembly, Web and UI infrastructure, databases, etc. 
  
@@ -145,8 +144,6 @@ Please note:
 results for all possible input values).
 
 - The definitions in this module do not have dependencies to anything from the outer circles.
-
-This makes it easy to test them in isolation. 
 
 At the core of our Domain lies the `Reservation` data type:
 
@@ -216,10 +213,11 @@ diagram:
 
 ### Testing
 
-As already mentioned: this layer has no knowledge of the world, it's all pure code.
-Testing therefore is straight forward, as you can see from the [DomainSpec](test/DomainSpec.hs) code.
+As already mentioned: this layer has no knowledge of the world and it's all pure code.
+Testing domain logic in isolation therefore is straight forward, 
+as you can see from the [DomainSpec](test/DomainSpec.hs) code.
 
-The data types and functions of the domain layer can be used without any mocking of components:
+The data types and functions of the domain layer can be used directly, without any mocking of components:
 
 ```haskell
 day = fromGregorian 2020 1 29
@@ -244,8 +242,8 @@ spec =
 ## The Use Case layer
 
 > The software in this layer contains application specific business rules. It encapsulates and implements all of the 
-> use cases of the system. These use cases orchestrate the flow of data to and from the entities, and direct those 
-> entities to use their enterprise wide business rules to achieve the goals of the use case.
+> use cases of the system. These **use cases orchestrate the flow of data to and from the entities, and direct those 
+> entities to use their enterprise wide business rules to achieve the goals of the use case.**
 >
 > Quoted from the [Clean Architecture blog post](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
@@ -258,7 +256,7 @@ Implemented Use Cases:
 1. Display the number of available seats for a given day
 
 2. Enter a reservation for a given day and keep it persistent.
-   If the reservation can not be served as all seats are occupies prode a functional error message stating
+   If the reservation can not be served as all seats are occupies provide a functional error message stating
    the issue.
 
 3. Display the list of reservations for a given day.
@@ -276,25 +274,27 @@ and only then can we call the domain function `availableSeats`.
 In addition we also will have to write a Log message when calling the functions
 to provide an audit trail.
 
-The dependency rule of clean architecture bans all direct access to a database or a 
-logging-infrastructure from the use case layer.
+**However, the dependency rule of clean architecture bans all direct access to a database or a 
+logging-infrastructure from the use case layer!**
 
 ### How can we define such a use case without violating the dependency rule?
 
 Algebraic Effect systems offer a consistent answer: 
 1. We **declare effects** in the use case layer by defining them as an abstract interface.
+
 2. We also specify the actual **usage of effects** in the use case layer by having calls against the abstract interface.
+
 3. We provide an **interpretation** of these effects only in the outer layers.
    This also allows us to provide different implementations. 
    So we can easily swap backends, e.g. migrating from MySQL to PostgreSQL, 
    and it can be used to provide mock implementations for testing purposes.
 
-Let's see how this looks like when using Polysemy to specify effects.
+Let's see how all this looks like when using Polysemy.
 
 ### Usage of effects
 
 ```haskell
--- | compute the number of available seats for a given day.
+-- | compute the number of available seats for a given day. the result must be a natural number, incl. 0
 availableSeats :: (Member Persistence r, Member Trace r) => Day -> Sem r Natural
 availableSeats day = do
   trace $ "compute available seats for " ++ show day
@@ -314,7 +314,7 @@ maxCapacity :: Natural
 maxCapacity = 20
 ```
 
-The type signature of `availableSeats` contains two constraints on the *effect stack* type `r`: `(Member ReservationTable r, Member Trace r)`
+The type signature of `availableSeats` contains two constraints on the *effect stack* type `r`: `(Member Persistence r, Member Trace r)`
 This means that the function may perform two different effects: persistence via the `Persistence` effect and 
 Logging via the `Trace` effect.
 
@@ -331,10 +331,10 @@ The first step of the function body of `availableSeats` specifies a Log action b
   trace $ "compute available seats for " ++ show day
 ```
 
-I repeat: `trace ` does not directly do any logging. The actual logging action is defined in the application 
-assembly or in a test setup.
+I repeat: `trace ` does not directly do any logging. The actual logging action - the effect interpretation - will be 
+defined in the application  assembly or in a test setup.
 
-The next line specify a lookup of the reservation list for `day` from the persistence layer:
+The next line specifies a lookup of the reservation list for `day` from the persistence layer:
 
 ```haskell
   todaysReservations <- fetch day
@@ -359,7 +359,7 @@ definition of the `Persistence` effect:
 type Persistence = KVS Day [Dom.Reservation]
 ```
 Where KVS (standing for Key/Value Store) is a type that is 
-[also defined in the use case layer](src/UseCases/KVS.hs):
+also defined in the use case layer ([KVS.hs](src/UseCases/KVS.hs)):
 
 ```haskell
 -- | a key value store specified as a GADT
@@ -383,7 +383,7 @@ insertKvs  :: Member (KVS k v) r => k -> v -> Sem r ()
 deleteKvs  :: Member (KVS k v) r => k -> Sem r ()
 ```
 
-These functions can be used in the `Sem` Monad. So now we understand much better what happens in `fetch`:
+These functions can be used in the `Sem` Monad. So now we understand much better what is going on in `fetch`:
 
 ```haskell
 fetch :: (Member Persistence r, Member Trace r) => Day -> Sem r [Dom.Reservation]
@@ -402,7 +402,7 @@ Then, back in `availableSeats` we call the domain logic function `Dom.availableS
 The resulting `Natural` value is lifted into the `Sem r` monad, thus matching the signature of the return type `Sem r Natural`.
 
 In the next diagram I'm depicting the layers Use Cases and Domain. The arrow from Use Cases to Domain represents the dependency
-rule: use case code may only reference domain logic but nothing from outer layers.
+rule: use case code may only reference domain logic but the domain logic may not reference anything from the use case layer.
   
 On the left side of the diagram we see the use case controllers (aka *use case interactors*) like `availableSeats` that 
 coordinate all activities and resources to fulfill a specific use case.
@@ -434,14 +434,14 @@ runPure :: ReservationMap
         -> [Either UC.ReservationError (ReservationMap, a)]
 runPure kvsMap program =
   program
-     & runKvsPure kvsMap              -- run the key-value store on a simple ReservationMap
+     & runKvsPure kvsMap              -- run the key-value store as a simple ReservationMap
      & runError @UC.ReservationError  -- run error handling to produce an Either UC.ReservationError (ReservationMap, a)
      & ignoreTrace                    -- run Trace by simply ignoring all messages 
      & runM                           -- wrap everything in a monadic type, [] in this case
 ```
 
 In addition to that I'm providing wrapping functions like `runAvailableSeats` that use `runPure` to interprete the effects of
-the actual use case functions (eg. `UC.availableSeats`) and extract the actual result from the 
+the use case functions (eg. `UC.availableSeats`) and extract the actual result from the 
 `[Either UC.ReservationError (ReservationMap, a)]` return value:
 
 ```haskell
@@ -452,7 +452,7 @@ runAvailableSeats kvsMap day = do
     [Left err]            -> error "availableSeats failed"
 ```
 
-This is all that it takes to abstract away a persistence layer, a logging facility and exception handling. 
+This is all that it takes to abstract away persistence layer, logging facility and exception handling. 
 We can now write tests in pure code:
 
 ```haskell
