@@ -426,18 +426,18 @@ As an example, in [UseCasePureSpec](test/UseCasePureSpec.hs) I'm providing pure 
 for all effects. 
 
 The `runPure` function takes a program with effects and handles each effect till it gets reduced 
-to `[Either ReservationError (ReservationMap‚ a)]`:
+to `Either ReservationError (ReservationMap‚ a)`:
 
 ```haskell
 runPure :: ReservationMap
         -> (forall r. Members [UC.Persistence, Error UC.ReservationError, Trace] r => Sem r a)
-        -> [Either UC.ReservationError (ReservationMap, a)]
+        -> Either UC.ReservationError (ReservationMap, a)
 runPure kvsMap program =
   program
-     & runKvsPure kvsMap              -- run the key-value store as a simple ReservationMap
+     & runKvsPure kvsMap              -- run the key-value store on a simple ReservationMap
      & runError @UC.ReservationError  -- run error handling to produce an Either UC.ReservationError (ReservationMap, a)
      & ignoreTrace                    -- run Trace by simply ignoring all messages 
-     & runM                           -- wrap everything in a monadic type, [] in this case
+     & run                            -- run a 'Sem' containing no effects as a pure value
 ```
 
 In addition to that I'm providing wrapping functions like `runAvailableSeats` that use `runPure` to interprete the effects of
@@ -448,8 +448,8 @@ the use case functions (eg. `UC.availableSeats`) and extract the actual result f
 runAvailableSeats :: ReservationMap -> Day -> Natural
 runAvailableSeats kvsMap day = do
   case runPure kvsMap (UC.availableSeats day) of
-    [Right (_, numSeats)] -> numSeats
-    [Left err]            -> error "availableSeats failed"
+    Right (_, numSeats) -> numSeats
+    Left err            -> error "availableSeats failed"
 ```
 
 This is all that it takes to abstract away persistence layer, logging facility and exception handling. 

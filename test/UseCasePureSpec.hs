@@ -20,48 +20,48 @@ import qualified UseCases.ReservationUseCase    as UC
 main :: IO ()
 main = hspec spec
 
--- | Takes a program with effects and handles each effect till it gets reduced to [Either ReservationError (ReservationMap‚ a)]. No IO !
+-- | Takes a program with effects and handles each effect till it gets reduced to Either ReservationError (ReservationMap‚ a). No IO !
 runPure :: ReservationMap
         -> (forall r. Members [UC.Persistence, Error UC.ReservationError, Trace] r => Sem r a)
-        -> [Either UC.ReservationError (ReservationMap, a)]
+        -> Either UC.ReservationError (ReservationMap, a)
 runPure kvsMap program =
   program
      & runKvsPure kvsMap              -- run the key-value store on a simple ReservationMap
      & runError @UC.ReservationError  -- run error handling to produce an Either UC.ReservationError (ReservationMap, a)
      & ignoreTrace                    -- run Trace by simply ignoring all messages 
-     & runM                           -- wrap everything in a monadic type, [] in this case
+     & run                            -- run a 'Sem' containing no effects as a pure value
 
 -- Helper functions for interpreting all effects in a pure way. That is no IO !
 
 runAvailableSeats :: ReservationMap -> Day -> Natural
 runAvailableSeats kvsMap day = do
   case runPure kvsMap (UC.availableSeats day) of
-    [Right (_, numSeats)] -> numSeats
-    [Left err]            -> error "availableSeats failed"
+    Right (_, numSeats) -> numSeats
+    Left err            -> error "availableSeats failed"
 
 runTryReservation :: ReservationMap -> Reservation -> Maybe ReservationMap
 runTryReservation kvsMap res = do
   case runPure kvsMap (UC.tryReservation res) of
-    [Right (m, ())] -> Just m
-    [Left err]      -> Nothing
+    Right (m, ()) -> Just m
+    Left err      -> Nothing
 
 runFetch :: ReservationMap -> Day -> [Reservation]
 runFetch kvsMap day = do
   case runPure kvsMap (UC.fetch day) of
-    [Right (_, reservations)] -> reservations
-    [Left err]                -> error "fetch failed"
+    Right (_, reservations) -> reservations
+    Left err                -> error "fetch failed"
 
 runListAll :: ReservationMap -> ReservationMap
 runListAll kvsMap = do
   case runPure kvsMap (UC.listAll) of
-    [Right (_, m)] -> m
-    [Left err]     -> error "listALl failed"
+    Right (_, m) -> m
+    Left err     -> error "listALl failed"
 
 runCancel :: ReservationMap -> Reservation -> Maybe ReservationMap
 runCancel kvsMap res = do
   case runPure kvsMap (UC.cancel res) of
-    [Right (m, ())] -> Just m
-    [Left err]      -> Nothing
+    Right (m, ()) -> Just m
+    Left err      -> Nothing
 
 -- setting up test fixtures
 initReservations :: ReservationMap
