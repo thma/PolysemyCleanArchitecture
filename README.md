@@ -429,8 +429,8 @@ The `runPure` function takes a program with effects and handles each effect till
 to `Either ReservationError (ReservationMap‚ a)`:
 
 ```haskell
-runPure :: ReservationMap
-        -> (forall r. Members [UC.Persistence, Error UC.ReservationError, Trace] r => Sem r a)
+runPure :: ReservationMap 
+        -> Sem '[UC.Persistence, State ReservationMap, Error UC.ReservationError, Trace] a 
         -> Either UC.ReservationError (ReservationMap, a)
 runPure kvsMap program =
   program
@@ -732,7 +732,7 @@ These wrapper function make use of the `runAllEffects` function that takes a pro
 and handles each effect till it gets reduced to `IO a`:
 
 ```haskell
-runAllEffects :: (forall r. Members [KeyValueTable, Input Config] r => Sem r a) -> IO a
+runAllEffects :: Sem '[KeyValueTable, Input Config, Trace, Embed IO] a -> IO a 
 runAllEffects program =
   program
     & runKvsAsSQLite       -- use SQLite based interpretation of the (KVS Int [String]) effect

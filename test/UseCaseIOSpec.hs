@@ -28,7 +28,7 @@ main :: IO ()
 main = hspec spec
 
 -- | Takes a program with effects and handles each effect till it gets reduced to IO a.
-runAllEffects :: (forall r. Members [Persistence, Error ReservationError, Trace] r => Sem r a) -> IO a
+runAllEffects :: Sem '[Persistence, Error ReservationError, Trace, Embed IO] a -> IO a
 runAllEffects program =
   program
     & runKvsAsFileServer

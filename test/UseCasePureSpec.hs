@@ -21,8 +21,8 @@ main :: IO ()
 main = hspec spec
 
 -- | Takes a program with effects and handles each effect till it gets reduced to Either ReservationError (ReservationMap‚ a). No IO !
-runPure :: ReservationMap
-        -> (forall r. Members [UC.Persistence, Error UC.ReservationError, Trace] r => Sem r a)
+runPure :: ReservationMap 
+        -> Sem '[UC.Persistence, State ReservationMap, Error UC.ReservationError, Trace] a 
         -> Either UC.ReservationError (ReservationMap, a)
 runPure kvsMap program =
   program

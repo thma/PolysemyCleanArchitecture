@@ -17,7 +17,7 @@ main = hspec spec
 -- Testing the KVS SQLLite implementation
 
 -- | Takes a program with effects and handles each effect till it gets reduced to IO a.
-runAllEffects :: (forall r. Members [KeyValueTable, Input Config] r => Sem r a) -> IO a
+runAllEffects :: Sem '[KeyValueTable, Input Config, Trace, Embed IO] a -> IO a 
 runAllEffects program =
   program
     & runKvsAsSQLite       -- use SQLite based interpretation of the (KVS Int [String]) effect
