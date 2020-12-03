@@ -1,9 +1,6 @@
 module UseCasePureSpec where
 
-import           Control.Exception
-import           Control.Monad.Except
 import           Data.Function                  ((&))
-import           Data.IORef
 import qualified Data.Map.Strict                as M
 import           Data.Time.Calendar
 import           Domain.ReservationDomain
@@ -11,9 +8,8 @@ import           InterfaceAdapters.KVSInMemory
 import           Numeric.Natural
 import           Polysemy
 import           Polysemy.Error
-import           Polysemy.Input                 (Input, runInputConst)
 import           Polysemy.State
-import           Polysemy.Trace                 (Trace, ignoreTrace, traceToIO)
+import           Polysemy.Trace                 (Trace, ignoreTrace)
 import           Test.Hspec
 import qualified UseCases.ReservationUseCase    as UC
 

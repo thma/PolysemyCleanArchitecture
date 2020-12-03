@@ -5,7 +5,6 @@ import qualified Data.Map.Strict              as M
 import           InterfaceAdapters.Config
 import           InterfaceAdapters.KVSSqlite
 import           Polysemy
-import           Polysemy.Error
 import           Polysemy.Input               (Input, runInputConst)
 import           Polysemy.Trace
 import           Test.Hspec
@@ -29,8 +28,8 @@ runAllEffects program =
 -- errors are rethrown as Runtime errors, which can be verified by HSpec.
 handleErrors :: IO (Either err a) -> IO a
 handleErrors e = do
-  either <- e
-  case either of
+  eitherError <- e
+  case eitherError of
     Right v -> return v
     Left _  -> error "something bad happend"
 
@@ -41,7 +40,7 @@ data Memo = Memo Int [String]
     deriving (Show)
 
 persistMemo :: (Member KeyValueTable r)  => Memo -> Sem r ()
-persistMemo (Memo id lines ) = insertKvs id lines
+persistMemo (Memo k val ) = insertKvs k val
 
 fetchMemo :: (Member KeyValueTable r) => Int -> Sem r (Maybe [String])
 fetchMemo = getKvs
@@ -54,7 +53,7 @@ deleteMemo = deleteKvs
 
 -- Helper functions for interpreting all effects in IO
 runPersist :: Memo -> IO ()
-runPersist memo = runAllEffects (persistMemo memo)
+runPersist val = runAllEffects (persistMemo val)
 
 runFetch :: Int -> IO (Maybe [String])
 runFetch k = runAllEffects (fetchMemo k)
@@ -65,9 +64,14 @@ runFetchAll = runAllEffects fetchAll
 runDelete :: Int -> IO ()
 runDelete k = runAllEffects (deleteMemo k)
 
+key :: Int
 key = 4711
-text = ["In the morning", "I don't drink coffee", "But lots of curcuma chai."]
-memo = Memo key text
+
+v :: [String]
+v = ["In the morning", "I don't drink coffee", "But lots of curcuma chai."]
+
+memo :: Memo
+memo = Memo key v
 
 spec :: Spec
 spec =
@@ -79,7 +83,7 @@ spec =
     it "persists a key-value pair to the SQLite database" $ do
       runPersist memo
       maybeMatch <- runFetch key
-      maybeMatch `shouldBe` Just text
+      maybeMatch `shouldBe` Just v
 
     it "fetches a Map of all key-value entries from the KV store" $ do
       map <- runFetchAll

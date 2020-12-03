@@ -2,25 +2,19 @@ module UseCaseIOSpec where
 
 import           Test.Hspec
 
-import           Control.Exception
-import           Control.Monad.Except
 import           Data.Function                    ((&))
 import           Data.List                        (isSuffixOf)
 import qualified Data.Map.Strict                  as M
 import           Data.Time.Calendar
 import           Domain.ReservationDomain
-import           InterfaceAdapters.Config
 import           InterfaceAdapters.KVSFileServer
 import           Polysemy
 import           Polysemy.Error
-import           Polysemy.Input                   (Input, runInputConst)
-import           Polysemy.State
-import           Polysemy.Trace                   (Trace, ignoreTrace,
-                                                   traceToIO)
-import           System.Directory                 (doesFileExist, listDirectory,
-                                                   removeFile)
+import           Polysemy.Trace                   (Trace, ignoreTrace)
+import           System.Directory                 (listDirectory, removeFile)
 import           UseCases.ReservationUseCase
 import           Data.Aeson.Types (ToJSON, FromJSON)
+import Control.Monad.Cont (liftIO)
 
 
 
@@ -44,23 +38,25 @@ instance FromJSON Reservation
 -- errors are rethrown as Runtime errors, which can be verified by HSpec.
 handleErrors :: IO (Either ReservationError a) -> IO a
 handleErrors e = do
-  either <- e
-  case either of
+  eitherErr <- e
+  case eitherErr of
     Right v                           -> return v
-    Left (ReservationNotPossible msg) -> (error msg)
+    Left (ReservationNotPossible _msg) ->
+      case eitherErr of
+        Left (ReservationNotPossible msg) -> error msg
 
 -- Helper functions for interpreting all effects in IO
 runTryReservation :: Reservation -> IO ()
-runTryReservation res = do
-  runAllEffects (tryReservation res)
+runTryReservation r = do
+  runAllEffects (tryReservation r)
 
 runFetch :: Day -> IO [Reservation]
-runFetch day = do
-  runAllEffects (fetch day)
+runFetch d = do
+  runAllEffects (fetch d)
 
 runListAll :: IO ReservationMap
 runListAll = do
-  runAllEffects (listAll)
+  runAllEffects listAll
 
 runCancel :: Reservation -> IO ()
 runCancel r = do
@@ -70,12 +66,15 @@ runCancel r = do
 -- | helper function to clean the test data files
 deleteAllFiles :: IO [()]
 deleteAllFiles = do
-  allFiles <- listDirectory dataDir
+  allFiles <- liftIO $ listDirectory dataDir
   let filteredFiles = filter (isSuffixOf ".json") allFiles
-  mapM removeFile (map (\f -> dataDir ++ f) filteredFiles)
+  mapM (liftIO . removeFile . (dataDir ++)) filteredFiles
 
 
+day :: Day
 day = fromGregorian 2020 5 2
+
+res :: [Reservation]
 res = [Reservation day "Andrew M. Jones" "amjones@example.com" 4]
 
 spec :: Spec

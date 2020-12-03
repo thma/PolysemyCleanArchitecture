@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric  #-}
 module Domain.ReservationDomain
 ( Reservation (..)
-, ReservationMap (..)
+, ReservationMap
 , usedCapacity
 , availableSeats
 , isReservationPossible
@@ -11,11 +11,9 @@ module Domain.ReservationDomain
 
 where
 
-import           Data.Aeson
 import           Data.List
 import qualified Data.Map.Strict    as M
 import           Data.Time.Calendar
-import           Data.Time.Clock
 import           GHC.Generics
 import           Numeric.Natural
 
@@ -43,12 +41,12 @@ type ReservationMap = M.Map Day [Reservation]
 -- | computes the number of reserved seats for a list of reservations
 usedCapacity :: [Reservation] -> Natural
 usedCapacity [] = 0
-usedCapacity (Reservation _ _ _ quantity : rest) = quantity + usedCapacity rest
+usedCapacity (Reservation _ _ _ requested : rest) = requested + usedCapacity rest
 
 -- | check whether it is possible to add a reservation to the table.
 -- | Return True if successful, else return False
 isReservationPossible :: Reservation -> [Reservation] -> Natural -> Bool
-isReservationPossible res@(Reservation date _ _ requestedSeats) reservationsOnDay maxCapacity =
+isReservationPossible (Reservation _ _ _ requestedSeats) reservationsOnDay maxCapacity =
   availableSeats maxCapacity reservationsOnDay >= requestedSeats
 
 -- | computes the number of available seats from a maximum capacity and a list of reservations.

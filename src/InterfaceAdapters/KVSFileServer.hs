@@ -5,9 +5,8 @@ module InterfaceAdapters.KVSFileServer
 where
 
 import           Control.Exception
-import           Data.Aeson        (FromJSON, ToJSON, decodeFileStrict, eitherDecodeFileStrict, encodeFile, toJSON)
+import           Data.Aeson        (FromJSON, ToJSON, eitherDecodeFileStrict, encodeFile)
 import           Data.List         (isSuffixOf)
-import qualified Data.Map.Strict   as M
 import           UseCases.KVS   (KVS (..))
 import           Polysemy
 import           System.Directory  (doesFileExist, listDirectory, removeFile)
@@ -41,9 +40,12 @@ storeEntity key = encodeFile (getPath key)
 
 -- | compute path of data file
 getPath :: String -> String
-getPath id = dataDir ++ id ++ extension
+getPath file = dataDir ++ file ++ extension
 
+dataDir :: FilePath
 dataDir   = ".stack-work/"
+
+extension :: [Char]
 extension = ".json"
 
 -- | load all persistent entities of type a

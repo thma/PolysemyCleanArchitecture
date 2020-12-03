@@ -3,8 +3,6 @@ module ExternalInterfaces.ApplicationAssembly where
 import           Control.Monad.Except
 import           Data.ByteString.Lazy.Char8               (pack)
 import           Data.Function                            ((&))
-import qualified Data.Map.Strict                          as M
-import           Data.Time.Calendar
 import           InterfaceAdapters.Config
 import           InterfaceAdapters.KVSFileServer          (runKvsAsFileServer)
 import           InterfaceAdapters.KVSSqlite              (runKvsAsSQLite)
@@ -25,17 +23,17 @@ import           Data.Aeson.Types (ToJSON, FromJSON)
 createApp :: Config -> Application
 createApp config = serve reservationAPI (liftServer config)
 
-liftServer :: Config -> ServerT ReservationAPI Handler
+liftServer :: Config -> ServerT ReservationAPI Handler
 liftServer config = hoistServer reservationAPI (interpretServer config) reservationServer
   where
-    interpretServer config sem  =  sem
-      & selectKvsBackend config
-      & runInputConst config
+    interpretServer conf sem  =  sem
+      & selectKvsBackend conf
+      & runInputConst conf
       & runError @ReservationError
-      & selectTraceVerbosity config
+      & selectTraceVerbosity conf
       & runM
       & liftToHandler
-    liftToHandler = Handler . ExceptT . (fmap handleErrors)
+    liftToHandler = Handler . ExceptT . fmap handleErrors
     handleErrors (Left (ReservationNotPossible msg)) = Left err412 { errBody = pack msg}
     handleErrors (Right value) = Right value
 

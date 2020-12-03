@@ -8,21 +8,16 @@ import           Control.Lens
 import           Data.Aeson                               (toJSON)
 import           Data.Swagger                             hiding (port)
 import           Domain.ReservationDomain                 (Reservation (..))
-import           ExternalInterfaces.ApplicationAssembly   (liftServer,
-                                                           loadConfig)
-import           GHC.IO.Handle.Types                      (Handle)
+import           ExternalInterfaces.ApplicationAssembly   (liftServer, loadConfig)
 import           InterfaceAdapters.Config
-import           InterfaceAdapters.ReservationRestService (ReservationAPI,
-                                                           reservationAPI,
-                                                           reservationServer)
+import           InterfaceAdapters.ReservationRestService (ReservationAPI, reservationAPI)
 import           Network.Wai
 import           Network.Wai.Handler.Warp
 import           Servant
 import           Servant.Swagger
 import           Servant.Swagger.UI
 import           System.Info                              (os)
-import           System.Process                           (ProcessHandle,
-                                                           createProcess, shell)
+import           System.Process                           (createProcess, shell)
 
 -- | Swagger spec of Model type 'Reservation'
 instance ToSchema Reservation where

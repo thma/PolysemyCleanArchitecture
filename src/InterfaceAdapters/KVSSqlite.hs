@@ -5,16 +5,12 @@ import           Polysemy
 
 import           Data.Aeson                     (decode, encode)
 import           Data.Aeson.Types               (FromJSON, ToJSON)
-import           Data.ByteString.Lazy.Char8     (pack, unpack)
-import           Data.Function                  ((&))
-import           Data.Maybe                     (catMaybes, listToMaybe)
 import qualified Data.Text.Lazy                 as T
 import           Data.Text.Lazy.Encoding
 import           Database.SQLite.Simple         (NamedParam ((:=)))
 import qualified Database.SQLite.Simple         as SQL
 import           Database.SQLite.Simple.FromRow
 import           Database.SQLite.Simple.ToRow
-import           Database.SQLite.Simple.Types
 import           InterfaceAdapters.Config
 import           Polysemy.Input
 import           Polysemy.Internal.Union        (Member)
@@ -43,7 +39,7 @@ runKvsAsSQLite = interpret $ \case
 
   where
 
-    getAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v) => k -> Sem r (Maybe v)
+    getAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, FromJSON v) => k -> Sem r (Maybe v)
     getAction key = do
       trace $ "getAction: " ++ show key
       conn <- connectionFrom input
@@ -51,11 +47,11 @@ runKvsAsSQLite = interpret $ \case
                           "SELECT key, value FROM store WHERE key = :key"
                           [":key" := show key] :: IO [KeyValueRow])
       case rows of
-        []                          -> return Nothing
-        (KeyValueRow _key value):xs -> return $ (decode . encodeUtf8) value
+        []                         -> return Nothing
+        (KeyValueRow _key value):_ -> return $ (decode . encodeUtf8) value
 
 
-    listAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v) => Sem r [(k, v)]
+    listAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Read k, FromJSON v) => Sem r [(k, v)]
     listAction = do
       trace "listAction:"
       conn <- connectionFrom input
@@ -66,10 +62,10 @@ runKvsAsSQLite = interpret $ \case
           toKV (KeyValueRow key value) =  ((read . T.unpack) key, (decode . encodeUtf8) value)
           catNestedMaybe [] = []
           catNestedMaybe ((key, Just value):xs) = (key, value):catNestedMaybe xs
-          catNestedMaybe ((key, Nothing):xs)    = catNestedMaybe xs
+          catNestedMaybe ((_  , Nothing):xs)    = catNestedMaybe xs
 
 
-    insertAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v) => k -> v -> Sem r ()
+    insertAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, ToJSON v) => k -> v -> Sem r ()
     insertAction key value = do
       trace $ "insertAction: " ++ show key ++ " " ++ show (encode value)
       let (query, params) = ("INSERT INTO store (key, value) VALUES (:key, :value) "
@@ -81,7 +77,7 @@ runKvsAsSQLite = interpret $ \case
       embed $ SQL.executeNamed conn query params
 
 
-    deleteAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k) => k -> Sem r ()
+    deleteAction :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k) => k -> Sem r ()
     deleteAction key = do
       trace $ "deleteAction: " ++ show key
       conn <- connectionFrom input

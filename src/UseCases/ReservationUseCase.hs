@@ -4,27 +4,25 @@ module UseCases.ReservationUseCase
 , tryReservation
 , cancel
 , availableSeats
-, Persistence (..)
+, Persistence
 , ReservationError (..)
 , Dom.Reservation (..)
-, Dom.ReservationMap (..)
+, Dom.ReservationMap
 )
 where
 
-import           Control.Monad            (when)
 import qualified Data.Map.Strict          as M
 import           Data.Maybe               (fromMaybe)
 import           Data.Time.Calendar
-import           Data.Time.Clock
 import qualified Domain.ReservationDomain as Dom (Reservation (..),
-                                                  ReservationMap (..),
+                                                  ReservationMap (),
                                                   addReservation,
                                                   availableSeats,
                                                   cancelReservation,
                                                   isReservationPossible)
 import           Polysemy
 import           Polysemy.Error
-import           Polysemy.Input           (Input, input)
+import           Polysemy.Input           ()
 import           Polysemy.Trace           (Trace, trace)
 import           UseCases.KVS             (KVS, getKvs, insertKvs, listAllKvs)
 import           Numeric.Natural
@@ -86,20 +84,20 @@ tryReservation :: (Member Persistence r, Member (Error ReservationError) r, Memb
 tryReservation res@(Dom.Reservation date _ _ requestedQuantity)  = do
   trace $ "trying to reservate " ++ show requestedQuantity ++ " more seats on " ++ show date
   todaysReservations <- fetch date
-  let availableSeats = Dom.availableSeats maxCapacity todaysReservations
+  let available = Dom.availableSeats maxCapacity todaysReservations
   if Dom.isReservationPossible res todaysReservations maxCapacity
     then persistReservation res
-    else throw $ ReservationNotPossible ("Sorry, only " ++ show availableSeats ++ " seats left on " ++ show date)
+    else throw $ ReservationNotPossible ("Sorry, only " ++ show available ++ " seats left on " ++ show date)
 
   where
     -- | persist a reservation to the reservation table.
     persistReservation :: (Member (KVS Day [Dom.Reservation]) r, Member Trace r)  => Dom.Reservation -> Sem r ()
-    persistReservation r@(Dom.Reservation date _ _ _ ) = do
+    persistReservation r@(Dom.Reservation day _ _ _ ) = do
       trace $ "enter a new reservation to KV store: " ++ show r
-      rs <- fetch date
+      rs <- fetch day
       let updated = Dom.addReservation r rs
       trace $ "storing: " ++ show updated
-      insertKvs date updated
+      insertKvs day updated
 
 -- | fetch the list of reservations for a given day from the key value store.
 -- | If no match is found, an empty list is returned.

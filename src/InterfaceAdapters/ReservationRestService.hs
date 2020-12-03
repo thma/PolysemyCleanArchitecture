@@ -6,18 +6,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 module InterfaceAdapters.ReservationRestService where
 
-import           Control.Error               (fromMaybe)
-import           Control.Monad.IO.Class      (liftIO)
 import           Data.Aeson.Types            (FromJSON, ToJSON)
-import           Data.ByteString.Lazy.Char8  (pack)
 import           Data.Time.Calendar          (Day)
 import qualified Domain.ReservationDomain    as Dom (Reservation,
                                                      ReservationMap)
-import           InterfaceAdapters.Config   (Config)
 import           Numeric.Natural
 import           Polysemy
 import           Polysemy.Error
-import           Polysemy.Input              (Input)
 import           Polysemy.Trace              (Trace)
 import           Servant
 import qualified UseCases.ReservationUseCase as UC (ReservationError,
@@ -53,7 +48,7 @@ type ReservationAPI =
 
 -- | implements the ReservationAPI
 reservationServer :: (Member UC.Persistence r, Member (Error UC.ReservationError) r, 
-                      Member Trace r, Member (Input Config) r) => ServerT ReservationAPI (Sem r)
+                      Member Trace r) => ServerT ReservationAPI (Sem r)
 reservationServer =
         UC.listAll        -- GET    /reservations
   :<|>  UC.fetch          -- GET    /reservations/YYYY-MM-DD

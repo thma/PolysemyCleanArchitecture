@@ -4,7 +4,6 @@ module InterfaceAdapters.KVSInMemory
   ) 
 where
 
-import Control.Monad
 import Polysemy
 import Polysemy.State
 import qualified Data.Map.Strict as M
@@ -25,4 +24,4 @@ runKvsPure :: Ord k
            => M.Map k v
            -> Sem (KVS k v : State (M.Map k v) : r) a 
            -> Sem r (M.Map k v, a)
-runKvsPure map = runState map . runKvsOnMapState
+runKvsPure kvMap = runState kvMap . runKvsOnMapState

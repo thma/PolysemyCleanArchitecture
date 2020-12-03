@@ -1,42 +1,27 @@
 module ExternalInterfacesSpec where
 
-import           Control.Monad.Except
-import           Data.ByteString                          (ByteString)
 import qualified Data.ByteString.Lazy                     as LB
-import           Data.ByteString.Lazy.Char8               (pack)
-import           Data.Function                            ((&))
-import           Data.IORef
-import qualified Data.Map.Strict                          as M
-import           Data.Time.Calendar
 import           ExternalInterfaces.ApplicationAssembly   (createApp)
 import           InterfaceAdapters.Config
-import           InterfaceAdapters.KVSInMemory
-import           InterfaceAdapters.ReservationRestService
 import           Network.HTTP.Types.Header                (hContentType)
 import           Network.HTTP.Types.Method                (methodDelete,
                                                            methodPost)
-import qualified Network.Wai.Handler.Warp                 as W
-import           Network.Wai.Test                         hiding (request)
-import           Polysemy
-import           Polysemy.Error
-import           Polysemy.Input                           (runInputConst)
-import           Polysemy.State                           hiding (get)
-import           Polysemy.Trace                           (ignoreTrace,
-                                                           traceToIO)
-import           Servant.Server
 import           Test.Hspec
 import           Test.Hspec.Wai
-import           UseCases.ReservationUseCase
+import Network.Wai.Test (SResponse)
+import Data.ByteString.Internal
 
 reservationData :: LB.ByteString
 reservationData = "{\"email\":\"amjones@example.com\",\"quantity\":12,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}"
 
+postJSON :: ByteString -> LB.ByteString -> WaiSession SResponse
 postJSON path = request methodPost path [(hContentType, "application/json")]
+
+deleteJSON :: ByteString -> LB.ByteString -> WaiSession SResponse
 deleteJSON path = request methodDelete path [(hContentType, "application/json")]
 
 main :: IO ()
 main = hspec spec
-
 
 config :: Config
 config = Config {port = 8080, backend = SQLite, dbPath = "kvs-assembly.db", verbose = False}

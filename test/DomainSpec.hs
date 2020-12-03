@@ -1,18 +1,24 @@
 module DomainSpec where
 
 import           Test.Hspec
-import qualified Data.Map as Map
 import           Data.Time.Calendar
 
 import           Domain.ReservationDomain
+import           GHC.Natural (Natural)
 
 main :: IO ()
 main = hspec spec
 
+day :: Day
 day = fromGregorian 2020 1 29
+res1 :: Reservation
 res1 = Reservation day "Andrew M. Jones" "amjones@example.com" 4
+res2 :: Reservation
 res2 = Reservation day "Thomas Miller" "tm@example.com" 3
+reservations :: [Reservation]
 reservations = [res1, res2]
+
+totalCapacity :: Natural
 totalCapacity = 20
 
 spec :: Spec

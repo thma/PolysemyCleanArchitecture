@@ -92,6 +92,7 @@ tests:
     - PolysemyCleanArchitecture
     - hspec
     - QuickCheck
+    - quickcheck-io
     - hspec-wai
 #    - hspec-wai-json
     - wai-extra
