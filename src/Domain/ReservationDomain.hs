@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric  #-}
+{-# LANGUAGE DeriveAnyClass #-}
 module Domain.ReservationDomain
 ( Reservation (..)
 , ReservationMap
@@ -16,6 +17,7 @@ import qualified Data.Map.Strict    as M
 import           Data.Time.Calendar
 import           GHC.Generics
 import           Numeric.Natural
+import           Data.Aeson.Types (ToJSON, FromJSON)
 
 {--
 This module implements the business logic for seat reservations in a very small boutique restaurant.
@@ -33,7 +35,7 @@ data Reservation = Reservation
     , email    :: String  -- ^ the email address of the guest
     , quantity :: Natural -- ^ how many seats are requested
     }
-    deriving (Eq, Generic, Read, Show)
+    deriving (Eq, Generic, Read, Show, ToJSON, FromJSON)
 
 -- | a key value map holding a list of reservations for any given day
 type ReservationMap = M.Map Day [Reservation]

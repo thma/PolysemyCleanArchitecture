@@ -6,7 +6,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 module InterfaceAdapters.ReservationRestService where
 
-import           Data.Aeson.Types            (FromJSON, ToJSON)
 import           Data.Time.Calendar          (Day)
 import qualified Domain.ReservationDomain    as Dom (Reservation,
                                                      ReservationMap)
@@ -21,10 +20,6 @@ import qualified UseCases.ReservationUseCase as UC (ReservationError,
                                                     fetch, listAll,
                                                     tryReservation)
                                                     
--- | in order to allow JSON serialization for the Dom.Reservation type, it must instantiate FromJSON and ToJSON.
-instance ToJSON Dom.Reservation
-instance FromJSON Dom.Reservation
-
 -- | Declaring the routes of the REST API for Restaurant Reservations
 type ReservationAPI =
        "reservations" :> Summary "retrieve a map of all reservations (Day -> [Reservation])"
