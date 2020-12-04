@@ -8,16 +8,12 @@ import           Network.HTTP.Types.Method                (methodDelete,
                                                            methodPost)
 import           Test.Hspec
 import           Test.Hspec.Wai
-import Network.Wai.Test (SResponse)
-import Data.ByteString.Internal
 
 reservationData :: LB.ByteString
 reservationData = "{\"email\":\"amjones@example.com\",\"quantity\":12,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}"
 
-postJSON :: ByteString -> LB.ByteString -> WaiSession SResponse
 postJSON path = request methodPost path [(hContentType, "application/json")]
 
-deleteJSON :: ByteString -> LB.ByteString -> WaiSession SResponse
 deleteJSON path = request methodDelete path [(hContentType, "application/json")]
 
 main :: IO ()
