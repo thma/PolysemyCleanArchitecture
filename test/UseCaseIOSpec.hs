@@ -13,7 +13,6 @@ import           Polysemy.Error
 import           Polysemy.Trace                   (Trace, ignoreTrace)
 import           System.Directory                 (listDirectory, removeFile)
 import           UseCases.ReservationUseCase
-import           Data.Aeson.Types (ToJSON, FromJSON)
 import Control.Monad.Cont (liftIO)
 
 
@@ -30,10 +29,6 @@ runAllEffects program =
     & ignoreTrace
     & runM
     & handleErrors
-
--- | the FileServer implementation of KVS works with JSON serialization, thus Reservation must instantiate ToJSON and FromJSON
-instance ToJSON Reservation
-instance FromJSON Reservation
 
 -- errors are rethrown as Runtime errors, which can be verified by HSpec.
 handleErrors :: IO (Either ReservationError a) -> IO a
