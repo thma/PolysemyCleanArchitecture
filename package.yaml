@@ -61,6 +61,8 @@ dependencies:
 - mtl
 - directory
 - sqlite-simple
+- acid-state
+- safecopy
 
 # Swagger UI
 - servant-docs
