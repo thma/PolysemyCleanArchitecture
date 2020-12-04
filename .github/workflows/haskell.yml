@@ -35,8 +35,10 @@ jobs:
 
       - name: Build
         run: |
+          echo "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $GITHUB_ENV
           stack build --system-ghc --test --bench --no-run-tests --no-run-benchmarks
 
       - name: Test
         run: |
+          echo "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $GITHUB_ENV
           stack test --system-ghc
