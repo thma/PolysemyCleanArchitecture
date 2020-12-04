@@ -1,6 +1,6 @@
 name: Haskell CI
-
 # Adopted from https://kodimensional.dev/github-actions
+
 # Trigger the workflow on push or pull request, but only for the master branch
 on:
   pull_request:
@@ -8,26 +8,25 @@ on:
     branches: [master]
 
 jobs:
-
   stack:
     name: stack / ghc ${{ matrix.ghc }}
     runs-on: ubuntu-latest            #${{ matrix.os }}
     strategy:
       matrix:
         stack: ["2.5.1"]
-        ghc: ["8.6.5", "8.8.3", "8.10.2"]
+        ghc: ["8.8.4", "8.10.2"]
 
     steps:
       - uses: actions/checkout@v2
         if: github.event.action == 'opened' || github.event.action == 'synchronize' || github.event.ref == 'refs/heads/master'
 
-      - uses: actions/setup-haskell@v1.1
+      - uses: actions/setup-haskell@v1.1.4
         name: Setup Haskell Stack
         with:
           ghc-version: ${{ matrix.ghc }}
           stack-version: ${{ matrix.stack }}
 
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         name: Cache ~/.stack
         with:
           path: ~/.stack
