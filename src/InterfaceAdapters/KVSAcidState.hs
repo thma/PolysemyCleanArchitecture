@@ -1,73 +1,77 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE TypeFamilies       #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
-module InterfaceAdapters.KVSAcidState 
-  (
-    runKvsAsAcidState
-  ) where
+{-# LANGUAGE DeriveDataTypeable  #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE DatatypeContexts    #-}
 
---import           Control.Exception
-import           Data.Aeson        (FromJSON, ToJSON)
---import           Data.List         (isSuffixOf)
-import           UseCases.KVS   (KVS (..))
-import           Polysemy
---import           System.Directory  (doesFileExist, listDirectory, removeFile)
+module InterfaceAdapters.KVSAcidState
+  ( runKvsAsAcidState,
+  )
+where
 
-import           Data.Acid
---import           Data.Acid.Advanced
-import qualified Data.Map             as Map
-import           Data.Typeable
-import           Data.SafeCopy
-import           Control.Monad.State
 import           Control.Monad.Reader
+import           Control.Monad.State
+import           Data.Acid
+import qualified Data.Map             as Map
+import           Data.SafeCopy
+import           Data.Typeable
+import           Polysemy
+import           UseCases.KVS         (KVS (..))
 
-type Key = String
-
-newtype KeyValue v = KeyValue (Map.Map Key v) deriving Typeable
-
-getAllValues (KeyValue kvMap) = Map.assocs kvMap
+newtype (Ord k) => KeyValue k v = KeyValue (Map.Map k v) deriving Typeable
 
 $(deriveSafeCopy 0 'base ''KeyValue)
 
-insertKey :: Key -> v -> Update (KeyValue v) ()
-insertKey key value
-    = do KeyValue m <- get
-         put (KeyValue (Map.insert key value m))
-         
-lookupKey :: Key -> Query (KeyValue v) (Maybe v)
-lookupKey key
-    = do KeyValue m <- ask
-         return (Map.lookup key m)         
+insertKey :: (Ord k) => k -> v -> Update (KeyValue k v) ()
+insertKey key value = do
+  KeyValue m <- get
+  put (KeyValue (Map.insert key value m))
 
-$(makeAcidic ''KeyValue ['insertKey, 'lookupKey])
+--deleteKey :: (Ord k) => k -> Update (KeyValue k v) ()
+--deleteKey key = do
+--  KeyValue m <- get
+--  put (KeyValue (Map.delete key m))
 
+lookupKey :: (Ord k) => k -> Query (KeyValue k v) (Maybe v)
+lookupKey key = do
+  KeyValue m <- ask
+  return (Map.lookup key m)
+
+listAll :: (Ord k) => Query (KeyValue k v) (KeyValue k v)
+listAll = do ask
+
+$(makeAcidic ''KeyValue ['insertKey, 'lookupKey, 'listAll])
 
 -- | File Based implementation of key value store
-runKvsAsAcidState :: (Member (Embed IO) r, Show k, Typeable v, SafeCopy v) => Sem (KVS k v : r) a -> Sem r a
+runKvsAsAcidState :: (Member (Embed IO) r, Typeable k, SafeCopy k, Ord k, Typeable v, SafeCopy v) => Sem (KVS k v : r) a -> Sem r a
 runKvsAsAcidState = interpret $ \case
-  ListAllKvs        -> undefined
-  GetKvs key        -> embed (getAction (show key))
-  InsertKvs key val -> embed (storeEntity (show key) val)
-  DeleteKvs key     -> embed (removeFile (show key))
+  ListAllKvs -> embed retrieveAll
+  GetKvs key -> embed (getAction key)
+  InsertKvs key val -> embed (insertAction key val)
+  DeleteKvs key -> undefined --embed (deleteAction (show key))
 
-retrieveAll ::  (FromJSON a, Read k) => IO [(k, a)]
-retrieveAll = undefined
+retrieveAll :: (Typeable k, SafeCopy k, Ord k, Typeable v, SafeCopy v) => IO [(k, v)]
+retrieveAll = do
+  acid <- openLocalStateFrom "_state" (KeyValue Map.empty)
+  (KeyValue m) <- query acid ListAll
+  closeAcidState acid
+  return $ Map.assocs m
 
-
-getAction :: (Typeable v, SafeCopy v) => [Char] -> IO (Maybe v)
+getAction :: (Typeable k, SafeCopy k, Ord k, Typeable v, SafeCopy v) => k -> IO (Maybe v)
 getAction key = do
-  acid <- openLocalState (KeyValue Map.empty)
+  acid <- openLocalStateFrom "_state"  (KeyValue Map.empty)
   let result = query acid (LookupKey key)
   closeAcidState acid
   result
-  
 
-storeEntity :: (Typeable v, SafeCopy v) => [Char] -> v -> IO ()
-storeEntity key val = do
-  acid <- openLocalState (KeyValue Map.empty)
+insertAction :: (Typeable k, SafeCopy k, Ord k, Typeable v, SafeCopy v) => k -> v -> IO ()
+insertAction key val = do
+  acid <- openLocalStateFrom "_state"  (KeyValue Map.empty)
   update acid (InsertKey key val)
   closeAcidState acid
 
-removeFile = undefined
-
+--deleteAction :: (Typeable k, SafeCopy k, Ord k) => k -> IO ()
+--deleteAction key = do
+--  acid <- openLocalStateFrom "_state"  (KeyValue Map.empty)
+--  update acid (DeleteKey key)
+--  closeAcidState acid

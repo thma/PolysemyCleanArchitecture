@@ -1,18 +1,19 @@
 module InterfaceAdaptersKVSAcidStateSpec where
 
-import           Data.Function                ((&))
-import qualified Data.Map.Strict              as M
+import           Control.Exception
+import           Control.Monad.Cont             (liftIO)
+import           Data.Function                  ((&))
+--import           Data.List                      (isSuffixOf)
+import qualified Data.Map.Strict                as M
 import           InterfaceAdapters.Config
 import           InterfaceAdapters.KVSAcidState
 import           Polysemy
-import           Polysemy.Input               (Input, runInputConst)
+import           Polysemy.Input                 (Input, runInputConst)
 import           Polysemy.Trace
+import           System.Directory               (removeDirectoryRecursive)
 import           Test.Hspec
 import           UseCases.KVS
-import           System.Directory (removeDirectoryRecursive)
-import           Control.Monad.Cont (liftIO)
-import           Data.List                        (isSuffixOf)
-import Control.Exception
+import           Control.Concurrent
 
 main :: IO ()
 main = hspec spec
@@ -20,7 +21,7 @@ main = hspec spec
 -- Testing the KVS AcidState implementation
 
 -- | Takes a program with effects and handles each effect till it gets reduced to IO a.
-runAllEffects :: Sem '[KeyValueTable, Input Config, Trace, Embed IO] a -> IO a 
+runAllEffects :: Sem '[KeyValueTable, Input Config, Trace, Embed IO] a -> IO a
 runAllEffects program =
   program
     & runKvsAsAcidState    -- use AcidState based interpretation of the (KVS Int [String]) effect
@@ -78,12 +79,12 @@ memo :: Memo
 memo = Memo key v
 
 -- | helper function to clean the test data files
---deleteAllFiles :: IO [()]
+deleteAllFiles :: IO ()
 deleteAllFiles =
-  catch (removeDirectoryRecursive "state") handler
-    where 
+  catch (removeDirectoryRecursive "_state") handler
+    where
       handler :: SomeException -> IO ()
-      handler ex = putStrLn $ "caught exception " ++ show ex
+      handler _ = return ()
 
 
 spec :: Spec
@@ -91,6 +92,9 @@ spec = do
   describe "The KV AcidState Implementation" $ do
     it "needs a file cleaning for repeatable tests in the file system..." $ do
       liftIO deleteAllFiles
+      threadDelay 10000 -- for some reason in the Windows POSIX implementation we need some
+                            -- time after deleting before we can create the directory anew again...
+                            -- so the 2nd call juis just eating up come CPU time.
       True `shouldBe` True
     it "returns Nothing if nothing can be found for a given id" $ do
       maybeMatch <- runFetch key
@@ -101,9 +105,9 @@ spec = do
       maybeMatch <- runFetch key
       maybeMatch `shouldBe` Just v
 
---    it "fetches a Map of all key-value entries from the KV store" $ do
---      map <- runFetchAll
---      M.size map `shouldBe` 1
+    it "fetches a Map of all key-value entries from the KV store" $ do
+      kvMap <- runFetchAll
+      M.size kvMap `shouldBe` 1
 --
 --    it "deletes an entry from the key value store" $ do
 --      runDelete key
