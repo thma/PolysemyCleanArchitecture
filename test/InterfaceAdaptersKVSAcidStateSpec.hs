@@ -108,11 +108,12 @@ spec = do
     it "fetches a Map of all key-value entries from the KV store" $ do
       kvMap <- runFetchAll
       M.size kvMap `shouldBe` 1
---
+
 --    it "deletes an entry from the key value store" $ do
+--      runPersist memo
 --      runDelete key
---      maybeMatch <- runFetch key
---      maybeMatch `shouldBe` Nothing
+--      --maybeMatch <- runFetch key
+--      --maybeMatch `shouldBe` Nothing
 
 
 
