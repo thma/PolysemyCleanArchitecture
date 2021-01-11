@@ -1,16 +1,29 @@
 module DomainSpec where
 
 import           Test.Hspec
+import           Test.QuickCheck
 import           Data.Time.Calendar
 
 import           Domain.ReservationDomain
-import           GHC.Natural (Natural)
+import           GHC.Natural (Natural (..), naturalFromInteger)
 
 main :: IO ()
 main = hspec spec
 
+instance Arbitrary Natural where
+  arbitrary = do
+    NonNegative nonNegative <- arbitrary
+    return $ naturalFromInteger nonNegative
+
+instance Arbitrary Reservation where
+  arbitrary = do
+    natural <- arbitrary
+    return $ Reservation day "Jupp0" "jupp@jupp.com" natural
+
+
 day :: Day
-day = fromGregorian 2020 1 29
+day = fromGregorian 2020 2 29
+
 res1 :: Reservation
 res1 = Reservation day "Andrew M. Jones" "amjones@example.com" 4
 res2 :: Reservation
@@ -28,23 +41,38 @@ spec =
       usedCapacity [] `shouldBe` 0
 
     it "computes the used capacity for a list of reservations" $
-      usedCapacity [res1, res2] `shouldBe` 7
+      property $ \reservations -> usedCapacity reservations `shouldBe` sum (map quantity reservations)
       
     it "computes the available seats for a list of reservations" $
-      availableSeats totalCapacity [res1, res2] `shouldBe` 13
+      property $ 
+        \reservations maxCapacity ->
+          availableSeats maxCapacity reservations `shouldBe` 
+          if maxCapacity >= (usedCapacity reservations) 
+            then maxCapacity - (usedCapacity reservations) 
+            else 0
 
     it "can check if a reservation is possible on a given day" $ 
-      isReservationPossible (Reservation day "name" "mail@mail.com" 8) reservations  totalCapacity `shouldBe` True
+      property $ \res reservationsOnDay maxCapacity -> 
+        isReservationPossible res reservationsOnDay maxCapacity `shouldBe`
+        availableSeats maxCapacity reservationsOnDay >= quantity res
 
     it "can check if a reservation is possible on a day with no bookings" $ 
-      isReservationPossible (Reservation day "name" "mail@mail.com" 8) []    totalCapacity `shouldBe` True
+      property $ \res maxCapacity -> isReservationPossible res [] maxCapacity `shouldBe` quantity res <= maxCapacity
+
+    it "will accept all reservations up to available seats on a day with no bookings" $
+      property $ \reservation available -> isReservationPossible reservation [] available `shouldBe` (quantity reservation) <= available 
 
     it "detects if a reservation is not possible on a given day" $ 
       isReservationPossible (Reservation day "name" "mail@mail.com" 15) reservations totalCapacity `shouldBe` False
 
     it "can add a reservation to a list of reservations" $ do
-      addReservation res1 [] `shouldBe` [res1]
-      addReservation res1 reservations `shouldBe` res1:reservations
+      property $ \res reservations -> 
+        let added = addReservation res reservations 
+        in length added == 1 + length reservations &&
+              res `elem` added && usedCapacity added == (usedCapacity reservations) + quantity res
+
+      --addReservation res1 [] `shouldBe` [res1]
+      --addReservation res1 reservations `shouldBe` res1:reservations
 
     it "can cancel a reservation" $ do
       cancelReservation res1 reservations `shouldBe` [res2]

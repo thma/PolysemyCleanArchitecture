@@ -53,7 +53,10 @@ isReservationPossible (Reservation _ _ _ requestedSeats) reservationsOnDay maxCa
 
 -- | computes the number of available seats from a maximum capacity and a list of reservations.
 availableSeats :: Natural-> [Reservation] -> Natural
-availableSeats maxCapacity reservations = maxCapacity - usedCapacity reservations
+availableSeats maxCapacity reservations = 
+  if (maxCapacity < usedCapacity reservations)
+    then 0
+    else maxCapacity - usedCapacity reservations
 
 -- | add a reservation to
 addReservation :: Reservation -> [Reservation] -> [Reservation]
