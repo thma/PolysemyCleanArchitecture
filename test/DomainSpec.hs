@@ -66,13 +66,13 @@ spec =
       isReservationPossible (Reservation day "name" "mail@mail.com" 15) reservations totalCapacity `shouldBe` False
 
     it "can add a reservation to a list of reservations" $ do
-      property $ \res reservations -> 
-        let added = addReservation res reservations 
+      property $ \quantity reservations -> 
+        let res = Reservation day "x" "mail@mail.com" quantity
+            added = addReservation res reservations 
         in length added == 1 + length reservations &&
-              res `elem` added && usedCapacity added == (usedCapacity reservations) + quantity res
-
-      --addReservation res1 [] `shouldBe` [res1]
-      --addReservation res1 reservations `shouldBe` res1:reservations
+              not (res `elem` reservations)        &&
+              res `elem` added                     &&
+              usedCapacity added == (usedCapacity reservations) + quantity
 
     it "can cancel a reservation" $ do
       cancelReservation res1 reservations `shouldBe` [res2]
