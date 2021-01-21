@@ -37,6 +37,9 @@ totalCapacity = 20
 spec :: Spec
 spec =
   describe "Domain Logic" $ do
+    it "testing works with arbitrary reservation on a single day" $
+      property $ \res -> date res == day && name res == "Jupp0" && email res == "jupp@jupp.com"
+
     it "computes the used capacity for an empty list of reservations" $
       usedCapacity [] `shouldBe` 0
 

@@ -8,4 +8,4 @@ data Config = Config {
 , verbose     :: Bool    -- ^ True enables logging
 }
 
-data Backend = SQLite | FileServer | InMemory deriving (Show)
+data Backend = SQLite | FileServer | InMemory | AcidState deriving (Show, Eq)

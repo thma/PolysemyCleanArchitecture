@@ -35,7 +35,7 @@ data Reservation = Reservation
     , email    :: String  -- ^ the email address of the guest
     , quantity :: Natural -- ^ how many seats are requested
     }
-    deriving (Eq, Generic, Read, Show, ToJSON, FromJSON)
+    deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
 -- | a key value map holding a list of reservations for any given day
 type ReservationMap = M.Map Day [Reservation]

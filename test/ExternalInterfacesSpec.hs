@@ -1,7 +1,7 @@
 module ExternalInterfacesSpec where
 
 import qualified Data.ByteString.Lazy                     as LB
-import           ExternalInterfaces.ApplicationAssembly   (createApp)
+import           ExternalInterfaces.ApplicationAssembly   (createApp, loadConfig)
 import           InterfaceAdapters.Config
 import           Network.HTTP.Types.Header                (hContentType)
 import           Network.HTTP.Types.Method                (methodDelete,
@@ -23,7 +23,14 @@ config :: Config
 config = Config {port = 8080, backend = SQLite, dbPath = "kvs-assembly.db", verbose = True}
 
 spec :: Spec
-spec =
+spec = do
+  it "can load the app config" $ do
+        conf <- loadConfig 
+        port conf `shouldBe` 8080
+        backend conf `shouldBe` SQLite 
+        dbPath conf `shouldBe` "kvs.db" 
+        verbose conf `shouldBe` True
+
   with (return $ createApp config) $
     describe "Rest Service" $ do
 
@@ -44,4 +51,5 @@ spec =
 
       it "responds with 200 for a valid DELETE /reservations" $
         deleteJSON "/reservations" reservationData `shouldRespondWith` 200
+
 
