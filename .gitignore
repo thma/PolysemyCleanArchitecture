@@ -7,3 +7,5 @@ stack.yaml.lock
 .idea/
 out/
 *~
+_state/
+dist-newstyle/
