@@ -3,7 +3,8 @@
 {-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE StandaloneDeriving #-}
--- {-# OPTIONS_GHC -ddump-splices  #-} -- print out template haskell generated code
+-- {-# LANGUAGE Safe #-}
+{-# OPTIONS_GHC -ddump-splices  #-}
 
 module InterfaceAdapters.KVSAcidState
   ( runKvsAsAcidState,
@@ -18,7 +19,7 @@ import           Data.SafeCopy
 import           Data.Typeable
 import           Polysemy
 import           UseCases.KVS         (KVS (..))
--- import           Data.Acid.Advanced
+--import           Data.Acid.Advanced
 
 newtype KeyValue k v = KeyValue (Map.Map k v) deriving Typeable
 

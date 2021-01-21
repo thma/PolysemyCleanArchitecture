@@ -86,7 +86,6 @@ deleteAllFiles =
       handler :: SomeException -> IO ()
       handler _ = return ()
 
-
 spec :: Spec
 spec = do
   describe "The KV AcidState Implementation" $ do

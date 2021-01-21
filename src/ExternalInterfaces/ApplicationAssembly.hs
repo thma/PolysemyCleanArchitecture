@@ -16,8 +16,6 @@ import           UseCases.KVS
 import           UseCases.ReservationUseCase
 import           Data.Aeson.Types (ToJSON, FromJSON)
 
-
-
 -- | creates the WAI Application that can be executed by Warp.run.
 -- All Polysemy interpretations must be executed here.
 createApp :: Config -> Application

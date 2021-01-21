@@ -20,7 +20,7 @@ main :: IO ()
 main = hspec spec
 
 config :: Config
-config = Config {port = 8080, backend = SQLite, dbPath = "kvs-assembly.db", verbose = False}
+config = Config {port = 8080, backend = SQLite, dbPath = "kvs-assembly.db", verbose = True}
 
 spec :: Spec
 spec =
