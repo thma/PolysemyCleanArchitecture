@@ -25,11 +25,16 @@ config = Config {port = 8080, backend = SQLite, dbPath = "kvs-assembly.db", verb
 spec :: Spec
 spec = do
   it "can load the app config" $ do
-        conf <- loadConfig 
-        port conf `shouldBe` 8080
-        backend conf `shouldBe` SQLite 
-        dbPath conf `shouldBe` "kvs.db" 
-        verbose conf `shouldBe` True
+    conf <- loadConfig 
+    port    conf `shouldBe` 8080
+    backend conf `shouldBe` SQLite 
+    dbPath  conf `shouldBe` "kvs.db" 
+    verbose conf `shouldBe` True
+
+  with (return $ createApp (config {verbose = False, backend = FileServer})) $ 
+    describe "Service with disabled tracing" $ do
+      it "responds with 16 for a first call to GET /seats/YYYY-MM-DD" $
+        get "/seats/2020-05-03" `shouldRespondWith` "20"
 
   with (return $ createApp config) $
     describe "Rest Service" $ do

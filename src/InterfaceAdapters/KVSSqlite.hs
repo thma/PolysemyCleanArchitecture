@@ -24,8 +24,8 @@ data KeyValueRow = KeyValueRow T.Text T.Text
 instance FromRow KeyValueRow where
   fromRow = KeyValueRow <$> field <*> field
 
-instance ToRow KeyValueRow where
-  toRow (KeyValueRow key_ val) = toRow (key_, val)
+--instance ToRow KeyValueRow where
+--  toRow (KeyValueRow key_ val) = toRow (key_, val)
 
 -- | Run a KVStore effect against a SQLite backend. Requires a Config object as input.
 runKvsAsSQLite :: (Member (Embed IO) r, Member (Input Config) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v)

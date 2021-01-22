@@ -41,8 +41,7 @@ selectKvsBackend :: (Member (Input Config) r, Member (Embed IO) r, Member Trace 
 selectKvsBackend config = case backend config of
   SQLite     -> runKvsAsSQLite
   FileServer -> runKvsAsFileServer
-  InMemory   -> error "not supported"
-
+  
 -- | if the config flag verbose is set to True, trace to Console, else ignore all trace messages
 selectTraceVerbosity :: (Member (Embed IO) r) => Config -> (Sem (Trace : r) a -> Sem r a)
 selectTraceVerbosity config =

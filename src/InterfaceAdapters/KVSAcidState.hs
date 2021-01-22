@@ -1,10 +1,8 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE StandaloneDeriving #-}
--- {-# LANGUAGE Safe #-}
-{-# OPTIONS_GHC -ddump-splices  #-}
+{-# LANGUAGE StandaloneDeriving  #-}
+-- {-# OPTIONS_GHC -ddump-splices  #-}
 
 module InterfaceAdapters.KVSAcidState
   ( runKvsAsAcidState,

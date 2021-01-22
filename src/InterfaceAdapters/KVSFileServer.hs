@@ -59,14 +59,11 @@ retrieveAll = do
 -- | parse an entity from a json file
 decodeFile :: FromJSON a => String -> IO a
 decodeFile jsonFileName= do
-  fileExists <- doesFileExist jsonFileName
-  if fileExists
-    then do
-      eitherEntity <- eitherDecodeFileStrict jsonFileName
-      case eitherEntity of
-        Left msg -> throw (InternalError $ "could not parse data: " ++ msg)
-        Right e  -> return e
-    else throw (EntityNotFound $ "could not find: " ++ jsonFileName)
+  eitherEntity <- eitherDecodeFileStrict jsonFileName
+  case eitherEntity of
+    Left msg -> throw (InternalError $ "could not parse data: " ++ msg)
+    Right e  -> return e
+
 
 -- | exeptions that may occur during persistence operations
 data PersistenceException = EntityNotFound String

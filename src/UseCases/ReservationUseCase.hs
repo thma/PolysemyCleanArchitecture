@@ -61,7 +61,7 @@ This makes it easy to test them in isolation.
 type Persistence = KVS Day [Dom.Reservation]
 
 -- | The functional error, raised if a reservation is not possible
-newtype ReservationError = ReservationNotPossible String deriving (Show, Eq)
+newtype ReservationError = ReservationNotPossible String -- deriving (Show, Eq)
 
 -- | compute the number of available seats for a given day.
 -- | Implements UseCase 1.
