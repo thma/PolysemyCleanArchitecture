@@ -74,4 +74,4 @@ spec =
         get "/seats/2020-05-02" `shouldRespondWith` "20"
   where
     config = Config {port = 8080, dbPath = "kvs-ia-test.db", backend = SQLite, verbose = False}
-    expected = "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":10,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}]}"
+    expected = "{\"2020-05-02\":[{\"date\":\"2020-05-02\",\"email\":\"amjones@example.com\",\"name\":\"Amelia Jones\",\"quantity\":10}]}"

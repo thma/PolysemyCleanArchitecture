@@ -46,7 +46,7 @@ spec = do
         postJSON "/reservations" reservationData `shouldRespondWith` 200
 
       it "responds with 200 for a call GET /reservations " $
-        get "/reservations" `shouldRespondWith` "{\"2020-05-02\":[{\"email\":\"amjones@example.com\",\"quantity\":12,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}]}"
+        get "/reservations" `shouldRespondWith` "{\"2020-05-02\":[{\"date\":\"2020-05-02\",\"email\":\"amjones@example.com\",\"name\":\"Amelia Jones\",\"quantity\":12}]}"
 
       it "responds with 412 if a reservation can not be done on a given day" $
         (postJSON "/reservations" reservationData >> postJSON "/reservations" reservationData) `shouldRespondWith` 412
