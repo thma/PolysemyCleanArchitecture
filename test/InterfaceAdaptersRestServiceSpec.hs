@@ -38,7 +38,7 @@ liftServer config = hoistServer reservationAPI (interpretServer config) reservat
         & runKvsAsSQLite
         & runInputConst config
         & runError @ReservationError
-        & traceToIO
+        & ignoreTrace 
         & runM
         & liftToHandler
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
