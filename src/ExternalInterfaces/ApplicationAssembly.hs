@@ -10,7 +10,7 @@ import           InterfaceAdapters.ReservationRestService
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.Input                           (Input, runInputConst)
-import           Polysemy.Trace                           (Trace, traceToIO, ignoreTrace)
+import           Polysemy.Trace                           (Trace, traceToStdout, ignoreTrace)
 import           Servant.Server
 import           UseCases.KVS
 import           UseCases.ReservationUseCase
@@ -46,7 +46,7 @@ selectKvsBackend config = case backend config of
 selectTraceVerbosity :: (Member (Embed IO) r) => Config -> (Sem (Trace : r) a -> Sem r a)
 selectTraceVerbosity config =
   if verbose config
-    then traceToIO
+    then traceToStdout
     else ignoreTrace
     
 -- | load application config. In real life, this would load a config file or read commandline args.

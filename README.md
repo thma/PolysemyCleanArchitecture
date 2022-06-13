@@ -477,8 +477,7 @@ This layer holds code for adapters to external resources like databases, message
 configuration, Logging, etc.
 
 The Logging effect `Trace` ships with Polysemy, so we don't have to implement anything here.
-(Of course we could overzealously implement our own Graylog adapter here, Hingegen hat unser `reservationServer` eine Typensignatur 
-but I leave this as an exercise for the reader... )
+(Of course we could overzealously implement our own Graylog adapter here, but I leave this as an exercise for the reader... )
 
 However, as the `KVS` type is our own invention we'll have to provide our own implementations.
 (We could have used the `KVStore` type from [polysemy-zoo](https://hackage.haskell.org/package/polysemy-zoo-0.7.0.0/docs/Polysemy-KVStore.html),
@@ -668,12 +667,11 @@ That's all!
 
 In the following diagram, we now see the third layer. Again, the arrow symbolises the dependency rule, which prohibits
 access from domain or use case layer to the interface adapters layer.
-To the right we see the `ReservationAPI` and its `reservationServer` implementation, which we just explored. They interact with
+To the left we see the `ReservationAPI` and its `reservationServer` implementation, which we just explored. They interact with
 the use case controller functions like `availableSeats`, `listAll`, etc.
 
-To the left we see the interpretations of the `KVS` effect (which was defined in the use case layer): `KVSInMemory`, 
-`KVSSqlite` (and a third one `KVSFileServer`, a file based implementation which you could
-[explore on your own](src/InterfaceAdapters/KVSFileServer.hs)).
+To the right we see the interpretations of the `KVS` effect (which was defined in the use case layer): `KVSInMemory`, 
+`KVSSqlite` (and also two other implementastions `KVSFileServer` and `KVSAcidState`, which you will find in [the InterfaceAdapters package](src/InterfaceAdapters/)).
 
 ![Interface Adapters layer](interface-adapters.png)
 
@@ -934,6 +932,7 @@ main = do
 ```
   
 The following diagram shows the elements added by the External Interface layer:
+
 - On the left we have application assembly code like `createApp` used by the `Warp` server or some of the different
   `runPure` functions that we used in HSpec tests.
 - On the right we have the SQLite runtime library that provides access to the SQLite database
@@ -941,7 +940,7 @@ The following diagram shows the elements added by the External Interface layer:
 
 ![External Interfaces layer](clean-architecture.png)
 
-### Testing
+### Testing the application assembly
 
 Testing the application assembly is quite straightforward and resembles the testing of the REST service:
 
