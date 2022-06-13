@@ -211,7 +211,7 @@ diagram:
 
 ![The Domain layer](domain.png)
 
-### Testing
+### Testing the domain layer
 
 As already mentioned: this layer has no knowledge of the world and it's all pure code.
 Testing domain logic in isolation therefore is straight forward, 
