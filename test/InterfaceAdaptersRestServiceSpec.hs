@@ -26,6 +26,8 @@ import           Servant.Server
 import           Test.Hspec
 import           Test.Hspec.Wai
 import           UseCases.ReservationUseCase
+import           Data.Aeson
+import           Test.Hspec.Wai.Matcher (bodyEquals)
 
 createApp :: Config -> IO Application
 createApp config = return $ serve reservationAPI (liftServer config)
@@ -38,15 +40,22 @@ liftServer config = hoistServer reservationAPI (interpretServer config) reservat
         & runKvsAsSQLite
         & runInputConst config
         & runError @ReservationError
-        & ignoreTrace 
+        & ignoreTrace
         & runM
         & liftToHandler
     liftToHandler = Handler . ExceptT . (fmap handleErrors)
     handleErrors (Left (ReservationNotPossible msg)) = Left err412 {errBody = pack msg}
     handleErrors (Right value) = Right value
 
+
+reservation :: Reservation
+reservation = Reservation (fromGregorian 2020 5 2) "Amelia Jones" "amjones@example.com" 10
+
+reservationMap :: ReservationMap
+reservationMap = M.fromList [(fromGregorian 2020 5 2, [reservation])]
+
 reservationData :: LB.ByteString
-reservationData = "{\"email\":\"amjones@example.com\",\"quantity\":10,\"date\":\"2020-05-02\",\"name\":\"Amelia Jones\"}"
+reservationData = encode reservation
 
 postJSON path = request methodPost path [(hContentType, "application/json")]
 deleteJSON path = request methodDelete path [(hContentType, "application/json")]
@@ -74,4 +83,6 @@ spec =
         get "/seats/2020-05-02" `shouldRespondWith` "20"
   where
     config = Config {port = 8080, dbPath = "kvs-ia-test.db", backend = SQLite, verbose = False}
-    expected = "{\"2020-05-02\":[{\"date\":\"2020-05-02\",\"email\":\"amjones@example.com\",\"name\":\"Amelia Jones\",\"quantity\":10}]}"
+
+    expected :: ResponseMatcher
+    expected = ResponseMatcher {matchBody = bodyEquals (encode reservationMap), matchStatus = 200, matchHeaders = []}

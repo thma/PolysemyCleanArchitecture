@@ -10,8 +10,8 @@ import           InterfaceAdapters.ReservationRestService
 import           Polysemy
 import           Polysemy.Error
 import           Polysemy.Input                           (Input, runInputConst)
-import           Polysemy.Trace                           (Trace, traceToStdout, ignoreTrace)
-import           Servant.Server
+import           Polysemy.Trace                           (Trace, traceToIO, ignoreTrace)
+import           Servant.Server                           (serve, errBody, err412, Handler(..), ServerT, Application, hoistServer)
 import           UseCases.KVS
 import           UseCases.ReservationUseCase
 import           Data.Aeson.Types (ToJSON, FromJSON)
@@ -23,17 +23,20 @@ createApp config = serve reservationAPI (liftServer config)
 
 liftServer :: Config -> ServerT ReservationAPI Handler
 liftServer config = hoistServer reservationAPI (interpretServer config) reservationServer
-  where
-    interpretServer conf sem  =  sem
+ -- where
+
+interpretServer conf sem  =  sem
       & selectKvsBackend conf
       & runInputConst conf
       & runError @ReservationError
       & selectTraceVerbosity conf
       & runM
       & liftToHandler
-    liftToHandler = Handler . ExceptT . fmap handleErrors
-    handleErrors (Left (ReservationNotPossible msg)) = Left err412 { errBody = pack msg}
-    handleErrors (Right value) = Right value
+
+liftToHandler = Handler . ExceptT . fmap handleErrors
+
+handleErrors (Left (ReservationNotPossible msg)) = Left err412 { errBody = pack msg}
+handleErrors (Right value) = Right value
 
 -- | can select between SQLite or FileServer persistence backends.
 selectKvsBackend :: (Member (Input Config) r, Member (Embed IO) r, Member Trace r, Show k, Read k, ToJSON v, FromJSON v)
@@ -46,7 +49,7 @@ selectKvsBackend config = case backend config of
 selectTraceVerbosity :: (Member (Embed IO) r) => Config -> (Sem (Trace : r) a -> Sem r a)
 selectTraceVerbosity config =
   if verbose config
-    then traceToStdout
+    then traceToIO
     else ignoreTrace
     
 -- | load application config. In real life, this would load a config file or read commandline args.
