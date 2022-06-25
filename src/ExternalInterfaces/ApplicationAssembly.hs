@@ -1,40 +1,48 @@
 module ExternalInterfaces.ApplicationAssembly where
 
-import           Control.Monad.Except
+import           Control.Monad.Except                     (ExceptT(ExceptT))
 import           Data.ByteString.Lazy.Char8               (pack)
 import           Data.Function                            ((&))
-import           InterfaceAdapters.Config
+import           InterfaceAdapters.Config                 (Backend(SQLite, FileServer), Config(..))
 import           InterfaceAdapters.KVSFileServer          (runKvsAsFileServer)
 import           InterfaceAdapters.KVSSqlite              (runKvsAsSQLite)
-import           InterfaceAdapters.ReservationRestService
-import           Polysemy
-import           Polysemy.Error
+import           InterfaceAdapters.ReservationRestService (reservationAPI, reservationServer, ReservationAPI)
+import           Polysemy                                 (Sem, runM, Embed, Member)
+import           Polysemy.Error                           (Error, runError)
 import           Polysemy.Input                           (Input, runInputConst)
 import           Polysemy.Trace                           (Trace, traceToIO, ignoreTrace)
-import           Servant.Server                           (serve, errBody, err412, Handler(..), ServerT, Application, hoistServer)
-import           UseCases.KVS
-import           UseCases.ReservationUseCase
-import           Data.Aeson.Types (ToJSON, FromJSON)
+import           Servant.Server                           (serve, errBody, err412, Handler(..), ServerT, Application, hoistServer, ServerError)
+import           UseCases.KVS                             (KVS)
+import           UseCases.ReservationUseCase              (ReservationError(..))
+import           Data.Aeson.Types                         (ToJSON, FromJSON)
 
 -- | creates the WAI Application that can be executed by Warp.run.
 -- All Polysemy interpretations must be executed here.
 createApp :: Config -> Application
 createApp config = serve reservationAPI (liftServer config)
 
+
 liftServer :: Config -> ServerT ReservationAPI Handler
 liftServer config = hoistServer reservationAPI (interpretServer config) reservationServer
- -- where
+ 
 
+--interpretServer :: (Show k, Read k, ToJSON v, FromJSON v) =>
+--                Config -> Sem '[KVS k v, Input Config, Error ReservationError, Trace, Embed IO] a -> Handler a
 interpretServer conf sem  =  sem
       & selectKvsBackend conf
       & runInputConst conf
-      & runError @ReservationError
       & selectTraceVerbosity conf
+      & runError @ReservationError
+
+      
+      
       & runM
       & liftToHandler
 
+liftToHandler :: IO (Either ReservationError a) -> Handler a
 liftToHandler = Handler . ExceptT . fmap handleErrors
 
+handleErrors :: Either ReservationError b -> Either ServerError b
 handleErrors (Left (ReservationNotPossible msg)) = Left err412 { errBody = pack msg}
 handleErrors (Right value) = Right value
 
