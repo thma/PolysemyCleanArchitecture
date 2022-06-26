@@ -1,10 +1,11 @@
 module ExternalInterfaces.WarpAppServer where
 
---import           ExternalInterfaces.AppServer
-import           Polysemy (Embed, Sem, Member, embed )
-import           Network.Wai (Application)
-import           Network.Wai.Handler.Warp               (run)
+import           ExternalInterfaces.AppServer
+import           Polysemy (Embed, Sem, Member, embed, interpret )
+import qualified Network.Wai.Handler.Warp as Warp (run)
 
-serveAppWithWarp :: Member (Embed IO) r => Int -> Application -> Sem r ()
-serveAppWithWarp port app =
-    embed $ run port app
+    
+-- | Warp Based implementation of AppServer
+runAppServerOnWarp :: (Member (Embed IO) r) => Sem (AppServer : r) a -> Sem r a
+runAppServerOnWarp = interpret $ \case
+  ServeApp port app -> embed $ Warp.run port app
