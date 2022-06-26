@@ -26,16 +26,11 @@ liftServer :: Config -> ServerT ReservationAPI Handler
 liftServer config = hoistServer reservationAPI (interpretServer config) reservationServer
  
 
---interpretServer :: (Show k, Read k, ToJSON v, FromJSON v) =>
---                Config -> Sem '[KVS k v, Input Config, Error ReservationError, Trace, Embed IO] a -> Handler a
 interpretServer conf sem  =  sem
       & selectKvsBackend conf
       & runInputConst conf
       & selectTraceVerbosity conf
       & runError @ReservationError
-
-      
-      
       & runM
       & liftToHandler
 

@@ -75,7 +75,7 @@ dependencies:
 
 library:
   source-dirs: src
-  ghc-options: -O2 -flate-specialise -fspecialise-aggressively
+  ghc-options: -O2 -flate-specialise -fspecialise-aggressively 
 
 executables:
   PolysemyCleanArchitecture:
