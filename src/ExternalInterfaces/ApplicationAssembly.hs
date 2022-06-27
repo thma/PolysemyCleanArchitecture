@@ -15,8 +15,6 @@ import           Servant.Server                           (serve, errBody, err41
 import           UseCases.KVS                             (KVS)
 import           UseCases.ReservationUseCase              (ReservationError(..))
 import           Data.Aeson.Types                         (ToJSON, FromJSON)
-import           ExternalInterfaces.AppServer (serveApp, AppServer)
-import           ExternalInterfaces.WarpAppServer (runAppServerOnWarp)
 
 -- | creates the WAI Application that can be executed by Warp.run.
 -- All Polysemy interpretations must be executed here.
@@ -61,18 +59,3 @@ selectTraceVerbosity config =
 -- | load application config. In real life, this would load a config file or read commandline args.
 loadConfig :: IO Config
 loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs.db", verbose = True}
-
--- | build app from config and serve with AppServer effect.
-serveAppFromConfig :: (Member AppServer r) => Config -> Sem r ()
-serveAppFromConfig config = do
-  let p   = port config
-      app = createApp config
-  serveApp p app
-
--- | in this example the AppServer effect is interpreted by runAppServerOnWarp
-sampleMain :: IO ()
-sampleMain = do
-  config <- loadConfig
-  serveAppFromConfig config
-    & runAppServerOnWarp    -- use Warp to run rest application
-    & runM
