@@ -2,7 +2,8 @@
 
 ## Introduction
 
-A few months ago an interesting question was raised in the [issues section of my PolysemyCleanArchitecture GitHub project](https://github.com/thma/PolysemyCleanArchitecture/issues/2):
+Two years ago I wrote [Implementing Clean Architecture with Haskell and Polysemy](https://thma.github.io/posts/2020-05-29-polysemy-clean-architecture.html). 
+A few months ago an interesting question was raised in the [issues section of the respectuve GitHub project](https://github.com/thma/PolysemyCleanArchitecture/issues/2):
 
 > I'm wondering if we want to change the server to serverless, is it easy to do that? 
 > If we treat the server as an effect, can we just change the [polysemy effect] interpreter?
@@ -58,7 +59,7 @@ liftServer config = hoistServer reservationAPI (interpretServer config) reservat
 
 This design works perfectly fine and also follows the common practise to exploit the Servant [`hoistServer`](https://hackage.haskell.org/package/servant-server-0.19.1/docs/Servant-Server.html#v:hoistServer) mechanism.
 
-The only complaint is that the Polysemy effect interpreter is not executed as the outmost piece of code. Accordingly we have to deploy our application into warp rather than having Polysemy in control and executing warp as an effect.
+The only complaint is that the Polysemy effect interpreter is not executed as the outermost piece of code. Accordingly we have to deploy our application into warp rather than having Polysemy in control and executing warp as an effect.
 
 
 ## The new solution
