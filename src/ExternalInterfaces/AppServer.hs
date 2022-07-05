@@ -7,7 +7,7 @@ import           Network.Wai              (Application)
 import           Polysemy                 (makeSem)
 
 data AppServer m a where
-  ServeApp :: Int -> Application -> AppServer m ()
+  ServeApp :: Application -> AppServer m ()
   ServeAppFromConfig :: Config -> AppServer m ()
 
 makeSem ''AppServer

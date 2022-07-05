@@ -4,6 +4,7 @@ import           Data.Function                          ((&))
 import           ExternalInterfaces.AppServer           (serveAppFromConfig)
 import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig)
 import           ExternalInterfaces.WarpAppServer       (runWarpAppServer)
+import           ExternalInterfaces.HalAppServer        (runHalAppServer)
 import           InterfaceAdapters.Config
 import           Network.Wai.Handler.Warp               (run)
 import           Polysemy                               (runM)
@@ -21,10 +22,19 @@ simpleMain = do
   putStrLn $ "Starting server on port " ++ show p
   run p (createApp config)
 
--- | in this example the AppServer effect is interpreted by runAppServerOnWarp
+-- | in this example the AppServer effect is interpreted by runWarpAppServer
 warpAsEffectMain :: IO ()
 warpAsEffectMain = do
   config <- loadConfig
+  let p = port config
   serveAppFromConfig config
-    & runWarpAppServer -- use Warp to run rest application
+    & runWarpAppServer p -- use Warp to run rest application
     & runM
+
+-- | in this example the AppServer effect is interpreted by runHalAppServer
+halAsEffectMain :: IO ()
+halAsEffectMain = do
+  config <- loadConfig
+  serveAppFromConfig config
+    & runHalAppServer -- use HAL to run rest application
+    & runM    

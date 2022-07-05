@@ -51,6 +51,8 @@ dependencies:
 - time
 - wai
 - warp
+- hal
+- wai-handler-hal
 - bytestring
 - http-types
 - text
