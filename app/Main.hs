@@ -1,13 +1,13 @@
 module Main where
 
 import           Data.Function                          ((&))
-import           ExternalInterfaces.AppServer           (serveAppFromConfig)
-import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig)
-import           ExternalInterfaces.WarpAppServer       (runWarpAppServer)
+import           ExternalInterfaces.AppServer           (serveAppFromConfig, AppServer)
+import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig, serveConfiguredApp)
+import           ExternalInterfaces.WarpAppServer       (runWarpAppServer, runWarpAppServerWithConfigPort)
 import           ExternalInterfaces.HalAppServer        (runHalAppServer)
 import           InterfaceAdapters.Config
 import           Network.Wai.Handler.Warp               (run)
-import           Polysemy                               (runM)
+import           Polysemy                               (runM, Sem, Member )
 import           SwaggerUI                              (swagger)
 import           InterfaceAdapters.ConfigProvider
 import           InterfaceAdapters.StaticConfigProvider
@@ -44,11 +44,8 @@ halAsEffectMain = do
 
 test :: IO()
 test = do
-  config <- getConfig "test"
-            & runStaticConfigProvider
-            & runM
-  let p = port config
-  serveAppFromConfig config
-    & runWarpAppServer p -- use Warp to run rest application
+  serveConfiguredApp
+    & runStaticConfigProvider
+    & runWarpAppServerWithConfigPort -- use Warp to run rest application
     & runM
  
