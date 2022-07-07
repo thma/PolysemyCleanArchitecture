@@ -6,12 +6,12 @@ where
 
 import InterfaceAdapters.Config
 import InterfaceAdapters.ConfigProvider
-import Polysemy (Embed, Member, Sem, embed, interpret, runM)
+import Polysemy (Embed, Member, Sem, embed, interpret)
 
 
 runStaticConfigProvider :: (Member (Embed IO) r) => Sem (ConfigProvider : r) a -> Sem r a
 runStaticConfigProvider = interpret $ \case
-  GetConfig confName -> embed loadConfig
+  GetConfig -> embed loadConfig
 
 
 -- | load application config. In real life, this would load a config file or read commandline args.

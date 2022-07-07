@@ -25,7 +25,7 @@ createApp config = serve reservationAPI (liftServer config)
 
 serveConfiguredApp ::  (Member AppServer r, Member ConfigProvider r)  => Sem r ()
 serveConfiguredApp = do
-  config <- getConfig "test"
+  config <- getConfig
   serveAppFromConfig config
 
 

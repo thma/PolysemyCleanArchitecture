@@ -10,7 +10,7 @@ import           Network.Wai.Handler.Warp               (run)
 import           Polysemy                               (runM, Sem, Member )
 import           SwaggerUI                              (swagger)
 import           InterfaceAdapters.ConfigProvider
-import           InterfaceAdapters.StaticConfigProvider
+import           InterfaceAdapters.FileConfigProvider
 
 -- | the POSH version of the application: REST service + SwaggerUI
 main :: IO ()
@@ -41,11 +41,11 @@ halAsEffectMain = do
     & runHalAppServer -- use HAL to run rest application
     & runM    
 
-
-test :: IO()
+-- | This example treats loading of configuration as yet another effect.
+test :: IO ()
 test = do
   serveConfiguredApp
-    & runStaticConfigProvider
+    & runFileConfigProvider
     & runWarpAppServerWithConfigPort -- use Warp to run rest application
     & runM
  

@@ -10,10 +10,8 @@ import           Data.Text.Lazy.Encoding
 import           Database.SQLite.Simple         (NamedParam ((:=)))
 import qualified Database.SQLite.Simple         as SQL
 import           Database.SQLite.Simple.FromRow
-import           Database.SQLite.Simple.ToRow
 import           InterfaceAdapters.Config
 import           Polysemy.Input
-import           Polysemy.Internal.Union        (Member)
 import           Polysemy.Trace                 (Trace, trace)
 import           UseCases.KVS                   (KVS (..))
 

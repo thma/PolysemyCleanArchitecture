@@ -4,14 +4,10 @@ module InterfaceAdapters.ConfigProvider where
 
 import InterfaceAdapters.Config
 import Polysemy
-import Polysemy.Internal
 
+-- | The ConfigProvider effect can be used to provide and application with a Config instance.
 data ConfigProvider m a where
-  GetConfig :: String -> ConfigProvider m Config
+  GetConfig :: ConfigProvider m Config
 
 makeSem ''ConfigProvider
 
-{--
-getConfig :: Member ConfigProvider r => String -> Sem r Config
-getConfig x = send (GetConfig x :: ConfigProvider (Sem r) Config)
---}
