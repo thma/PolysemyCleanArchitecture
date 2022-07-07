@@ -5,8 +5,7 @@ name: Haskell CI
 on:
   pull_request:
   push:
-    branches: [master]
-
+  
 jobs:
   stack:
     name: stack / ghc ${{ matrix.ghc }}
