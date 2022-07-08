@@ -1,14 +1,16 @@
 module Main where
 
 import           Data.Function                          ((&))
-import           ExternalInterfaces.AppServer           (serveAppFromConfig)
-import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig)
-import           ExternalInterfaces.WarpAppServer       (runWarpAppServer)
+import           ExternalInterfaces.AppServer           (serveAppFromConfig, AppServer)
+import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig, serveConfiguredApp)
+import           ExternalInterfaces.WarpAppServer       (runWarpAppServer, runWarpAppServerWithConfigPort)
 import           ExternalInterfaces.HalAppServer        (runHalAppServer)
 import           InterfaceAdapters.Config
 import           Network.Wai.Handler.Warp               (run)
-import           Polysemy                               (runM)
+import           Polysemy                               (runM, Sem, Member )
 import           SwaggerUI                              (swagger)
+import           ExternalInterfaces.ConfigProvider
+import           ExternalInterfaces.FileConfigProvider
 
 -- | the POSH version of the application: REST service + SwaggerUI
 main :: IO ()
@@ -38,3 +40,12 @@ halAsEffectMain = do
   serveAppFromConfig config
     & runHalAppServer -- use HAL to run rest application
     & runM    
+
+-- | This example treats loading of configuration as yet another effect.
+test :: IO ()
+test = do
+  serveConfiguredApp
+    & runFileConfigProvider "application.config"  -- provide Config from a file
+    & runWarpAppServerWithConfigPort              -- use Warp to run rest application
+    & runM
+ 

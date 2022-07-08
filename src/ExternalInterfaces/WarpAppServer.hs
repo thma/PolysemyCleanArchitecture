@@ -17,4 +17,20 @@ runWarpAppServer port = interpret $ \case
   ServeAppFromConfig config ->
     embed $
       let app = createApp config
-       in Warp.run port app
+       in do 
+        putStrLn $ "starting Warp on Port " ++ show port
+        Warp.run port app
+
+runWarpAppServerWithConfigPort :: (Member (Embed IO) r) => Sem (AppServer : r) a -> Sem r a
+runWarpAppServerWithConfigPort = interpret $ \case
+  -- this is the more generic version which maps directly to Warp.run
+  ServeApp app -> embed $ Warp.run 8080 app
+
+  -- serving an application by constructing it from a config
+  ServeAppFromConfig config ->
+    embed $
+      let app = createApp config
+       in do 
+        putStrLn $ "starting Warp on Port " ++ show (port config)
+        Warp.run (port config) app
+
