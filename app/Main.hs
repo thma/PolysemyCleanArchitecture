@@ -9,8 +9,8 @@ import           InterfaceAdapters.Config
 import           Network.Wai.Handler.Warp               (run)
 import           Polysemy                               (runM, Sem, Member )
 import           SwaggerUI                              (swagger)
-import           InterfaceAdapters.ConfigProvider
-import           InterfaceAdapters.FileConfigProvider
+import           ExternalInterfaces.ConfigProvider
+import           ExternalInterfaces.FileConfigProvider
 
 -- | the POSH version of the application: REST service + SwaggerUI
 main :: IO ()
@@ -45,7 +45,7 @@ halAsEffectMain = do
 test :: IO ()
 test = do
   serveConfiguredApp
-    & runFileConfigProvider
-    & runWarpAppServerWithConfigPort -- use Warp to run rest application
+    & runFileConfigProvider "application.config"  -- provide Config from a file
+    & runWarpAppServerWithConfigPort              -- use Warp to run rest application
     & runM
  

@@ -1,11 +1,11 @@
-module InterfaceAdapters.StaticConfigProvider 
+module ExternalInterfaces.StaticConfigProvider 
 (
     runStaticConfigProvider
 )
 where
 
 import InterfaceAdapters.Config
-import InterfaceAdapters.ConfigProvider
+import ExternalInterfaces.ConfigProvider
 import Polysemy (Embed, Member, Sem, embed, interpret)
 
 

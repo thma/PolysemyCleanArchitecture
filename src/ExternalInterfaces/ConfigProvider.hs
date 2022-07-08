@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module InterfaceAdapters.ConfigProvider where
+module ExternalInterfaces.ConfigProvider where
 
 import InterfaceAdapters.Config
 import Polysemy
