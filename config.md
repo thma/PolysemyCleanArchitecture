@@ -149,6 +149,22 @@ main = do
 
 But it turned out that I had just not thought it through deep enough!
 
+## Chaining of Config loading and application execution as effects
+
+Instead of glueing stuff together in `main :: IO ()`, wouldn't it be much more in line with our overall intention formulate the sequencing of configuration loading and hosting the WAI application as a sequence
+of Polysemy effects? Maybe something like:
+
+```haskell
+-- | load configuration via ConfigProvider effect, then contruct and run app via AppServer effect
+configureAndServeApp ::  ( Member ConfigProvider r, Member AppServer r)  => Sem r ()
+configureAndServeApp = do
+  config <- getConfig
+  serveAppFromConfig config
+```
+
+In this function we use two effects `ConfigProvider` and `Appserver`. 
+
+
 ## Defining a ConfigProvider Effect
 
 ## A simple file based ConfigProvider effect handler

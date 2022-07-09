@@ -19,7 +19,7 @@ import           ExternalInterfaces.AppServer             (serveAppFromConfig, A
 import           ExternalInterfaces.ConfigProvider
 
 -- | load configuration via ConfigProvider effect, then contruct and run app via AppServer effect
-configureAndServeApp ::  (Member AppServer r, Member ConfigProvider r)  => Sem r ()
+configureAndServeApp ::  ( Member ConfigProvider r, Member AppServer r)  => Sem r ()
 configureAndServeApp = do
   config <- getConfig
   serveAppFromConfig config
