@@ -18,17 +18,15 @@ import           Data.Aeson.Types                         (ToJSON, FromJSON)
 import           ExternalInterfaces.AppServer             (serveAppFromConfig, AppServer)
 import           ExternalInterfaces.ConfigProvider
 
--- | creates the WAI Application that can be executed by Warp.run.
--- All Polysemy interpretations must be executed here.
-createApp :: Config -> Application
-createApp config = serve reservationAPI (liftServer config)
-
 -- | load configuration via ConfigProvider effect, then contruct and run app via AppServer effect
-serveConfiguredApp ::  (Member AppServer r, Member ConfigProvider r)  => Sem r ()
-serveConfiguredApp = do
+configureAndServeApp ::  (Member AppServer r, Member ConfigProvider r)  => Sem r ()
+configureAndServeApp = do
   config <- getConfig
   serveAppFromConfig config
 
+-- | creates the WAI Application that can be executed by Warp.run.
+createApp :: Config -> Application
+createApp config = serve reservationAPI (liftServer config)
 
 liftServer :: Config -> ServerT ReservationAPI Handler
 liftServer config = hoistServer reservationAPI (interpretServer config) reservationServer

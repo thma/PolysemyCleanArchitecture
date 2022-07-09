@@ -11,7 +11,7 @@ import           Database.SQLite.Simple         (NamedParam ((:=)))
 import qualified Database.SQLite.Simple         as SQL
 import           Database.SQLite.Simple.FromRow
 import           InterfaceAdapters.Config
-import           Polysemy.Input
+import           Polysemy.Input                 (Input, input)
 import           Polysemy.Trace                 (Trace, trace)
 import           UseCases.KVS                   (KVS (..))
 

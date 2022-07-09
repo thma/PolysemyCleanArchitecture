@@ -2,8 +2,8 @@ module Main where
 
 import           Data.Function                          ((&))
 import           ExternalInterfaces.AppServer           (serveAppFromConfig, AppServer)
-import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig, serveConfiguredApp)
-import           ExternalInterfaces.WarpAppServer       (runWarpAppServer, runWarpAppServerWithConfigPort)
+import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig, configureAndServeApp)
+import           ExternalInterfaces.WarpAppServer       (runWarpAppServer, runWarpAppServerOnPort)
 import           ExternalInterfaces.HalAppServer        (runHalAppServer)
 import           InterfaceAdapters.Config
 import           Network.Wai.Handler.Warp               (run)
@@ -27,10 +27,9 @@ simpleMain = do
 -- | in this example the AppServer effect is interpreted by runWarpAppServer
 warpAsEffectMain :: IO ()
 warpAsEffectMain = do
-  config <- loadConfig
-  let p = port config
-  serveAppFromConfig config
-    & runWarpAppServer p -- use Warp to run rest application
+  config <- loadConfig       -- load config
+  serveAppFromConfig config  -- create app from config and run it via AppServer effect
+    & runWarpAppServer       -- use Warp to run rest application
     & runM
 
 -- | in this example the AppServer effect is interpreted by runHalAppServer
@@ -42,10 +41,10 @@ halAsEffectMain = do
     & runM    
 
 -- | This example treats loading of configuration as yet another effect.
-test :: IO ()
-test = do
-  serveConfiguredApp
+loadConfigAsEffectMain :: IO ()
+loadConfigAsEffectMain = do
+  configureAndServeApp
     & runFileConfigProvider "application.config"  -- provide Config from a file
-    & runWarpAppServerWithConfigPort              -- use Warp to run rest application
+    & runWarpAppServer                            -- use Warp to run rest application
     & runM
  
