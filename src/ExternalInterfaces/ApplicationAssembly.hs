@@ -3,7 +3,7 @@ module ExternalInterfaces.ApplicationAssembly where
 import           Control.Monad.Except                     (ExceptT(ExceptT))
 import           Data.ByteString.Lazy.Char8               (pack)
 import           Data.Function                            ((&))
-import           InterfaceAdapters.Config                 (Backend(SQLite, FileServer), Config(..))
+import           InterfaceAdapters.Config                 (Backend(SQLite, FileServer), Config(..), Hosting(..))
 import           InterfaceAdapters.KVSFileServer          (runKvsAsFileServer)
 import           InterfaceAdapters.KVSSqlite              (runKvsAsSQLite)
 import           InterfaceAdapters.ReservationRestService (reservationAPI, reservationServer, ReservationAPI)
@@ -18,11 +18,6 @@ import           Data.Aeson.Types                         (ToJSON, FromJSON)
 import           ExternalInterfaces.AppServer             (serveAppFromConfig, AppServer)
 import           ExternalInterfaces.ConfigProvider
 
--- | load configuration via ConfigProvider effect, then contruct and run app via AppServer effect
-configureAndServeApp ::  ( Member ConfigProvider r, Member AppServer r)  => Sem r ()
-configureAndServeApp = do
-  config <- getConfig
-  serveAppFromConfig config
 
 -- | creates the WAI Application that can be executed by Warp.run.
 createApp :: Config -> Application
@@ -64,4 +59,4 @@ runSelectedTrace config =
     
 -- | load application config. In real life, this would load a config file or read commandline args.
 loadConfig :: IO Config
-loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs.db", verbose = True}
+loadConfig = return Config {port = 8080, backend = SQLite, dbPath = "kvs.db", verbose = True, hosting = Warp}

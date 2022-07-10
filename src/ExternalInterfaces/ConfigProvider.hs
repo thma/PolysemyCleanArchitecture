@@ -9,5 +9,7 @@ import Polysemy
 data ConfigProvider m a where
   GetConfig :: ConfigProvider m Config
 
+-- makeSem uses TemplateHaskell to generate effect functions (or smart Constructors) from the GADT definition:
+-- getConfig :: Member ConfigProvider r => Sem r Config
 makeSem ''ConfigProvider
 

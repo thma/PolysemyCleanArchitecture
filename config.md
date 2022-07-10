@@ -136,7 +136,7 @@ connectionFrom c = do
         return conn
 ```
 
-My reasoning was as follows: As I needed `config` as an explicit parameter to `serveAppFromConfig` in the `main` glue code, I thought I had to explicitely load it before entering the Polysemy effect chain:
+My reasoning was as follows: As I needed `config` as an explicit parameter to `serveAppFromConfig` in the `main` glue code and `loadConfig`being of type `IO Config`, I thought I had to explicitely execute it in the `IO` Monad and then handing it into the Polysemy effect chain:
 
 ```haskell
 main :: IO ()
@@ -147,28 +147,105 @@ main = do
     & runM
 ```
 
-But it turned out that I had just not thought it through deep enough!
+But it turned out that I had just not thought things through deep enough!
 
 ## Chaining of Config loading and application execution as effects
 
-Instead of glueing stuff together in `main :: IO ()`, wouldn't it be much more in line with our overall intention formulate the sequencing of configuration loading and hosting the WAI application as a sequence
-of Polysemy effects? Maybe something like:
+If we take a step back and look at the code in the `UseCases` package we'll see that we already have shown how to combine different effects into a sequence within the Polysemy `Sem` Monad.
+Take for example the following use case implementation:
+
+```haskell
+cancel :: (Member Persistence r, Member Trace r)  => Dom.Reservation -> Sem r ()
+cancel res@(Dom.Reservation date _ _ _) = do
+  trace $ "deleting reservation " ++ show res
+  reservations <- fetch date
+  trace $ "before: " ++ show reservations
+  let after = Dom.cancelReservation res reservations
+  trace $ "after: " ++ show after
+  insertKvs date after
+```
+
+So instead of glueing stuff together in `main :: IO ()`, wouldn't it be much more in line with our overall intention to formulate the sequencing of configuration loading and hosting the WAI application as a sequence of Polysemy effects? For example:
 
 ```haskell
 -- | load configuration via ConfigProvider effect, then contruct and run app via AppServer effect
-configureAndServeApp ::  ( Member ConfigProvider r, Member AppServer r)  => Sem r ()
+configureAndServeApp ::  (Member ConfigProvider r, Member AppServer r)  => Sem r ()
 configureAndServeApp = do
   config <- getConfig
   serveAppFromConfig config
 ```
 
-In this function we use two effects `ConfigProvider` and `Appserver`. 
+In this function we use two effects `ConfigProvider` and `Appserver`. I already described the `AppServer` effect in [my previous blog post](https://thma.github.io/posts/2022-07-04-polysemy-and-warp.html). So we only have to consider the `ConfigProvider` effect here.
 
 
 ## Defining a ConfigProvider Effect
 
-## A simple file based ConfigProvider effect handler
+First we define the ConfigProvider Effect. It provides an effect function `getConfig :: Member ConfigProvider r => Sem r Config`:
 
-## Chaining ConfigProvider and AppServer effects
+```haskell
+{-# LANGUAGE TemplateHaskell #-}
 
-## The new and shining glue code
+module ExternalInterfaces.ConfigProvider where
+
+import InterfaceAdapters.Config
+import Polysemy
+
+-- | The ConfigProvider effect can be used to provide and application with a Config instance.
+data ConfigProvider m a where
+  GetConfig :: ConfigProvider m Config
+
+-- makeSem uses TemplateHaskell to generate effect functions (or smart Constructors) from the GADT definition:
+-- getConfig :: Member ConfigProvider r => Sem r Config
+makeSem ''ConfigProvider
+```
+
+## Implementing the ConfigProvider effect
+
+Next we define an implementation of the `ConfigProvider` effect by defining an effect handler function 
+that loads a `Config` instance from a file:
+
+```haskell
+module ExternalInterfaces.FileConfigProvider where
+
+import InterfaceAdapters.Config
+import ExternalInterfaces.ConfigProvider
+import Polysemy (Embed, Member, Sem, embed, interpret)
+
+-- | provides a Config object from a local file path
+runFileConfigProvider :: (Member (Embed IO) r) => FilePath -> Sem (ConfigProvider : r) a -> Sem r a
+runFileConfigProvider path = interpret $ \case
+  GetConfig -> embed $ loadConfig path
+
+
+-- | load application config from file "application.config"
+loadConfig :: FilePath -> IO Config
+loadConfig path = do
+  input <- readFile path
+  pure $ read input
+```
+
+## The new and shining main function
+
+Now we have all the ingredients ready to clean up the glue code in `main :: IO ()`:
+
+```haskell
+main :: IO ()
+main = do
+  configureAndServeApp
+    & runFileConfigProvider "application.config"  -- provide Config from a file
+    & runWarpAppServer                            -- use Warp to run rest application
+    & runM
+```
+
+The complete control of the application is now exclusively managed by the Polysemy effect library.
+
+## Conclusion
+
+I really appreciate how the comments to my last blog post helped me to evolve the whole
+Polysemy Clean Architecture idea into a much improved design.
+
+So I'm sure that this post will trigger some more discussions and will help to improve grey spots in the
+overall concept.
+
+
+

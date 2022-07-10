@@ -110,7 +110,7 @@ fetch day = do
 
 -- | cancel a reservation, that is: delete it from the system.
 -- | Implements UseCase 4.
-cancel :: (Member (KVS Day [Dom.Reservation]) r, Member Trace r)  => Dom.Reservation -> Sem r ()
+cancel :: (Member Persistence r, Member Trace r)  => Dom.Reservation -> Sem r ()
 cancel res@(Dom.Reservation date _ _ _) = do
   trace $ "deleting reservation " ++ show res
   reservations <- fetch date

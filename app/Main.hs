@@ -1,15 +1,15 @@
 module Main where
 
 import           Data.Function                          ((&))
-import           ExternalInterfaces.AppServer           (serveAppFromConfig, AppServer)
-import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig, configureAndServeApp)
-import           ExternalInterfaces.WarpAppServer       (runWarpAppServer, runWarpAppServerOnPort)
+import           ExternalInterfaces.AppServer           (serveAppFromConfig)
+import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig)
+import           ExternalInterfaces.Hosting             (configureAndServeApp)
+import           ExternalInterfaces.WarpAppServer       (runWarpAppServer)
 import           ExternalInterfaces.HalAppServer        (runHalAppServer)
 import           InterfaceAdapters.Config
 import           Network.Wai.Handler.Warp               (run)
-import           Polysemy                               (runM, Sem, Member )
+import           Polysemy                               (runM )
 import           SwaggerUI                              (swagger)
-import           ExternalInterfaces.ConfigProvider
 import           ExternalInterfaces.FileConfigProvider
 
 -- | the POSH version of the application: REST service + SwaggerUI
@@ -47,4 +47,4 @@ loadConfigAsEffectMain = do
     & runFileConfigProvider "application.config"  -- provide Config from a file
     & runWarpAppServer                            -- use Warp to run rest application
     & runM
- 
+
