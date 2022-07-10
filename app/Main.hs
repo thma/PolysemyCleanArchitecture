@@ -3,7 +3,7 @@ module Main where
 import           Data.Function                          ((&))
 import           ExternalInterfaces.AppServer           (serveAppFromConfig)
 import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig)
-import           ExternalInterfaces.Hosting             (configureAndServeApp)
+import           ExternalInterfaces.Hosting             (configureAndServeApp, runSelectedHosting)
 import           ExternalInterfaces.WarpAppServer       (runWarpAppServer)
 import           ExternalInterfaces.HalAppServer        (runHalAppServer)
 import           InterfaceAdapters.Config
@@ -46,5 +46,13 @@ loadConfigAsEffectMain = do
   configureAndServeApp
     & runFileConfigProvider "application.config"  -- provide Config from a file
     & runWarpAppServer                            -- use Warp to run rest application
+    & runM
+    
+-- | This example treats loading of configuration as yet another effect.
+loadConfigAsEffectMain' :: IO ()
+loadConfigAsEffectMain' = do
+  configureAndServeApp
+    & runFileConfigProvider "application.config"  -- provide Config from a file
+    & runSelectedHosting                          -- run configured hosting option
     & runM
 
