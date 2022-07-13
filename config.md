@@ -3,18 +3,17 @@
 [![Actions Status](https://github.com/thma/PolysemyCleanArchitecture/workflows/Haskell%20CI/badge.svg)](https://github.com/thma/PolysemyCleanArchitecture/actions)
 <a href="https://github.com/thma/PolysemyCleanArchitecture"><img src="https://thma.github.io/img/forkme.png" height="20" ></a>
 
-## tl;dr
-
-Let's define two Polysemy effects to transparently handle application configuration:
-Loading configuration, using configuration to select effect interpreter functions as well as configuration of effects is all done by a single mechanism.
-
-[here is the code](https://github.com/thma/PolysemyCleanArchitecture)
 
 ## Introduction
 
+This is yet another sequel to my [Clean Architecture with Haskell and Polysemy article](https://thma.github.io/posts/2020-05-29-polysemy-clean-architecture.html).
+
 In my last blog post I demonstrated how the actual hosting of a WAI web app (e.g. with the Warp server or on AWS Lambda) can be defined as a Polysemy effect.
 The idea was well received on [reddit/r/haskell](https://www.reddit.com/r/haskell/) and also stirred some further discussions.
-One question that came up: why did I explicitly load configuration before starting the Polysemy effect interpreter? Wouldn't it be much more in line with the overall idea of my *Polysemy Clean Architecture* to handle this loading also as an effect? Here is my original code:
+One question that came up: why did I explicitly load configuration before starting the Polysemy effect interpreter? 
+Wouldn't it be much more in line with the overall idea of my *Polysemy Clean Architecture* to handle this loading also as an effect? 
+
+Here is my original code:
 
 ```haskell
 main :: IO ()
@@ -241,10 +240,10 @@ The complete control of the application is now exclusively managed by the Polyse
 
 ## Conclusion
 
-I really appreciate how the comments to my last blog post helped me to evolve the whole
+I'm very excited about how the comments on my last blog post have helped me develop the
 Polysemy Clean Architecture idea into a much improved design.
 
-So I'm sure that this post will trigger some more discussions and will help to improve grey spots in the
+So I'm sure that this post will trigger some more discussions and will help to improve remaining grey spots in the
 overall concept.
 
 
