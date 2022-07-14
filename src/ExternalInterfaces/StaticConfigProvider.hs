@@ -8,7 +8,7 @@ import InterfaceAdapters.Config
 import ExternalInterfaces.ConfigProvider
 import Polysemy (Embed, Member, Sem, embed, interpret)
 
-
+-- | just provides a static config instance
 runStaticConfigProvider :: (Member (Embed IO) r) => Sem (ConfigProvider : r) a -> Sem r a
 runStaticConfigProvider = interpret $ \case
   GetConfig -> embed loadConfig

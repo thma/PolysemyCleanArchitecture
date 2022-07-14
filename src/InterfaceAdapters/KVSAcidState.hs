@@ -2,7 +2,6 @@
 {-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE StandaloneDeriving  #-}
--- {-# OPTIONS_GHC -ddump-splices  #-}
 
 module InterfaceAdapters.KVSAcidState
   ( runKvsAsAcidState,
@@ -47,11 +46,11 @@ $(makeAcidic ''KeyValue ['insertKey, 'lookupKey, 'listAll, 'deleteKey])
 
 ---------------------
 
-openDB :: (SafeCopy k, Typeable k, Ord k, SafeCopy v, Typeable v) => IO (AcidState (KeyValue k v))
+openDB :: (SafeCopy k, Ord k, SafeCopy v) => IO (AcidState (KeyValue k v))
 openDB = openLocalStateFrom "_state" (KeyValue Map.empty)
 
 -- | AcidState based implementation of key value store
-runKvsAsAcidState :: (Member (Embed IO) r, Typeable k, SafeCopy k, Ord k, Typeable v, SafeCopy v) 
+runKvsAsAcidState :: (Member (Embed IO) r, SafeCopy k, Ord k, SafeCopy v) 
   => Sem (KVS k v : r) a -> Sem r a
 runKvsAsAcidState = interpret $ \case
   ListAllKvs -> embed retrieveAll
@@ -59,21 +58,21 @@ runKvsAsAcidState = interpret $ \case
   InsertKvs key val -> embed (insertAction key val)
   DeleteKvs key -> undefined --embed (deleteAction key)
 
-retrieveAll :: (Typeable k, SafeCopy k, Ord k, Typeable v, SafeCopy v) => IO [(k, v)]
+retrieveAll :: (SafeCopy k, Ord k, SafeCopy v) => IO [(k, v)]
 retrieveAll = do
   acid <- openDB
   (KeyValue m) <- query acid ListAll
   closeAcidState acid
   return $ Map.assocs m
 
-getAction :: (Typeable k, SafeCopy k, Ord k, Typeable v, SafeCopy v) => k -> IO (Maybe v)
+getAction :: (SafeCopy k, Ord k, SafeCopy v) => k -> IO (Maybe v)
 getAction key = do
   acid <- openDB
   let result = query acid (LookupKey key )
   closeAcidState acid
   result
 
-insertAction :: (Typeable k, SafeCopy k, Ord k, Typeable v, SafeCopy v) => k -> v -> IO ()
+insertAction :: (SafeCopy k, Ord k, SafeCopy v) => k -> v -> IO ()
 insertAction key val = do
   acid <- openDB
   update acid (InsertKey key val)

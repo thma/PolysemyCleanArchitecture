@@ -14,7 +14,7 @@ runFileConfigProvider path = interpret $ \case
   GetConfig -> embed $ loadConfig path
 
 
--- | load application config from file "application.config"
+-- | load application config from file path
 loadConfig :: FilePath -> IO Config
 loadConfig path = do
   input <- readFile path

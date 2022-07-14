@@ -25,6 +25,7 @@ main = do
 ```
 
 I explained my reasons for this design but promised to look for a better solution.
+
 In the following I'll explain the new design that I came up with.
 
 ## The ideas behind my original design
@@ -240,7 +241,7 @@ The complete control of the application is now exclusively managed by the Polyse
 
 ## Conclusion
 
-I'm very excited about how the comments on my last blog post have helped me develop the
+I'm excited about how the comments on my last blog post have helped me develop the
 Polysemy Clean Architecture idea into a much improved design.
 
 So I'm sure that this post will trigger some more discussions and will help to improve remaining grey spots in the

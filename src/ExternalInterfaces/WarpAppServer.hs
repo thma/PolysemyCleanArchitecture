@@ -1,11 +1,11 @@
 module ExternalInterfaces.WarpAppServer where
 
 import           ExternalInterfaces.AppServer
-import           ExternalInterfaces.ApplicationAssembly (createApp, loadConfig)
+import           ExternalInterfaces.ApplicationAssembly (createApp)
 import           InterfaceAdapters.Config               (Config (..))
 import qualified Network.Wai.Handler.Warp               as Warp (run)
 import           Polysemy                               (Embed, Member, Sem,
-                                                         embed, interpret, runM)
+                                                         embed, interpret)
 
 -- | Warp Based implementation of AppServer
 runWarpAppServerOnPort :: (Member (Embed IO) r) => Int -> Sem (AppServer : r) a -> Sem r a
