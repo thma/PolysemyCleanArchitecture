@@ -8,6 +8,23 @@ on:
   
 jobs:
 
+  hlint:
+    name: HLint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: 'Set up HLint'
+      uses: rwe/actions-hlint-setup@v1
+      with:
+        version: '3.3.6'
+
+    - name: 'Run HLint'
+      uses: rwe/actions-hlint-run@v1
+      with:
+        path: src/
+        fail-on: warning
+
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
