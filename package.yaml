@@ -74,6 +74,9 @@ dependencies:
 - swagger2
 - lens
 - process
+- filepath
+- haskell-lexer >= 1.0.2
+- directory
 
 library:
   source-dirs: src
