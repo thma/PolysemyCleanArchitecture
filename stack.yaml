@@ -18,7 +18,7 @@
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/11.yaml
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/16.yaml
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -36,7 +36,7 @@ packages:
 # forks / in-progress versions pinned to a git hash. For example:
 #
 extra-deps:
-  - wai-handler-hal-0.1.1.0@sha256:bed9438946d72d24d1e2f1ca0d5fa5aa217bbb343dab2395844cb0d93903c1c2,2139
+- wai-handler-hal-0.1.2.0@sha256:56b990afbcd1aa86522edd92bef22cdf3acf79b45176345671d96ccca14772be,2878
   #- ../graphmod
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git

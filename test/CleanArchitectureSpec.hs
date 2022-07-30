@@ -8,12 +8,24 @@ import System.Directory
 main :: IO ()
 main = hspec spec
 
+bogusDependency = (mod, [imp]) 
+  where
+    mod =  (fromHierarchy ["Domain"],"ReservationDomain") 
+    imp = Import { impMod = (fromHierarchy ["ExternalInterfaces"],"FileConfigProvider"), impType = NormalImp }
+
+verifyBogusDependencies :: FilePath -> Bool
+verifyBogusDependencies dir = 
+  all verifyImportDecl [bogusDependency]
+
 spec :: Spec
 spec =
-  describe "All module dependencies" $ do
-    it "comply to the outside-in rule" $ do
+  describe "The Dependency Checker" $ do
+    it "makes sure all modules comply to the outside-in rule" $ do
       check <- verifyAllDependencies "src"
       check `shouldBe` True
+    it "finds non-compliant import declarations" $ do
+      print (verifyBogusDependencies "src") `shouldThrow` 
+        errorCall "offending import declaration found in: Domain.ReservationDomain referencing modules in outer layers: [\"ExternalInterfaces.FileConfigProvider\"]"
 
 -- | verify the dependencies of all Haskell modules in directory 'dir' (and its sub-directories).
 verifyAllDependencies :: FilePath -> IO Bool
