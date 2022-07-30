@@ -37,6 +37,7 @@ packages:
 #
 extra-deps:
   - wai-handler-hal-0.1.1.0@sha256:bed9438946d72d24d1e2f1ca0d5fa5aa217bbb343dab2395844cb0d93903c1c2,2139
+  #- ../graphmod
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a

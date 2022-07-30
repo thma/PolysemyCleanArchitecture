@@ -103,3 +103,4 @@ tests:
     - hspec-wai
 #    - hspec-wai-json
     - wai-extra
+#    - graphmod >= 1.4.5
