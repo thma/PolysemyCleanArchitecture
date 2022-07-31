@@ -14,23 +14,45 @@ spec =
   describe "The Dependency Checker" $ do
     it "makes sure all modules comply to the outside-in rule" $ do
       allImports <- allImportDeclarations "src"
-      verifyAllDependencies allImports `shouldBe` Right ()
+      verifyCleanArchitectureDependencies allImports `shouldBe` Right ()
     it "finds non-compliant import declarations" $ do
       allImports <- allImportDeclarations "src"
-      verifyAllDependencies (allImports ++ [bogusDependency]) `shouldBe` 
+      verifyCleanArchitectureDependencies (allImports ++ [bogusDependency]) `shouldBe`
         Left [bogusDependency]
 
 -- | this instance represents a non-compliant dependency from the 'Domain' package to the 'ExternalInterfaces' package.
 bogusDependency :: (ModName, [Import])
-bogusDependency = (mod, [imp]) 
+bogusDependency = (mod, [imp])
   where
-    mod =  (fromHierarchy ["Domain"],"ReservationDomain") 
+    mod =  (fromHierarchy ["Domain"],"ReservationDomain")
     imp = Import { impMod = (fromHierarchy ["ExternalInterfaces"],"FileConfigProvider"), impType = NormalImp }
 
+-- | verify a list of ModuleImportDeclarations to comply to the clean architecture dependency rules.
+verifyCleanArchitectureDependencies :: [ModuleImportDeclarations] -> Either [(ModName, [Import])] () 
+verifyCleanArchitectureDependencies = 
+  verifyAllDependencies 
+    cleanArchitecturePackages 
+    (cleanArchitectureCompliantDeps cleanArchitecturePackages)
+
+-- | this type represents the package structure of a module e.g. Data.Time.Calendar resides in package Date.Time
+type Package = String
+
+-- | the list of source packages in descending order from outermost to innermost package in our CleanArchitecture project
+cleanArchitecturePackages :: [Package]
+cleanArchitecturePackages = ["ExternalInterfaces", "InterfaceAdapters", "UseCases", "Domain"]
+
+-- | for a given list of packages this function produces the set of all allowed dependency pairs between packages.
+--   Allowed dependencies according to CleanArchitecture:
+--   1. imports within the same package
+--   2. imports from outer layers to inner layers
+cleanArchitectureCompliantDeps :: [Package] -> [(Package, Package)]
+cleanArchitectureCompliantDeps [] = []
+cleanArchitectureCompliantDeps lst@(p : ps) = zip (repeat p) lst ++ cleanArchitectureCompliantDeps ps
+
 -- | verify the dependencies of a list of module import declarations. The results are collected into a list of Eithers.
-verifyAllDependencies ::  [ModuleImportDeclarations] -> Either [(ModName, [Import])] ()
-verifyAllDependencies imports = do
-  let results = map verifyImportDecl imports
+verifyAllDependencies :: [Package] -> [(Package, Package)] -> [ModuleImportDeclarations] -> Either [(ModName, [Import])] ()
+verifyAllDependencies allPackages compliantDependencies imports= do
+  let results = map (verifyImportDecl allPackages compliantDependencies) imports
   let (errs, _compliant) = partitionEithers results
   if null errs
     then Right ()
@@ -38,36 +60,22 @@ verifyAllDependencies imports = do
 
 -- | this function verifies all import declarations of a Haskell module.
 --   If offending imports are found, a diagnostic error message is produced.
-verifyImportDecl :: ModuleImportDeclarations -> Either (ModName, [Import]) ()
-verifyImportDecl (packageFrom, imports) =
+verifyImportDecl :: [Package] -> [(Package, Package)] -> ModuleImportDeclarations -> Either (ModName, [Import]) ()
+verifyImportDecl allPackages compliantDependencies (packageFrom, imports) =
   let offending = filter (not . verify packageFrom) imports
    in if null offending
         then Right ()
         else Left (packageFrom, offending)
   where
-    -- | verifies a single import declaration. 
+    -- | verifies a single import declaration.
     --   An import is compliant iff:
     --   1. it refers to some external package which not member of the 'packages' list
     --   2. the package dependency is a member of the compliant dependencies between elements of the 'packages' list.
     verify :: ModName -> Import -> Bool
     verify pFrom imp =
-      importPackage imp `notElem` packages
-        || (modulePackage pFrom, importPackage imp) `elem` allowedDependencies packages
+      importPackage imp `notElem` allPackages
+        || (modulePackage pFrom, importPackage imp) `elem` compliantDependencies --allowedDependencies packages
 
--- | this type represents the package structure of a module e.g. Data.Time.Calendar resides in package Date.Time
-type Package = String
-
--- | the list of source packages in descending order from outermost to innermost package in our CleanArchitecture project
-packages :: [Package]
-packages = ["ExternalInterfaces", "InterfaceAdapters", "UseCases", "Domain"]
-
--- | for a given list of packages this function produces the set of all allowed dependency pairs between packages.
---   Allowed dependencies according to CleanArchitecture:
---   1. imports within the same package
---   2. imports from outer layers to inner layers
-allowedDependencies :: [Package] -> [(Package, Package)]
-allowedDependencies [] = []
-allowedDependencies lst@(p : ps) = zip (repeat p) lst ++ allowedDependencies ps
 
 -- | this function returns the Package information from an Import definition
 importPackage :: Import -> Package
@@ -110,12 +118,12 @@ concatMapM op = foldr f (pure [])
   where
     f x xs = do x <- op x; if null x then xs else do { xs <- xs; pure $ x ++ xs }
 
--- I'm not adding these instance declarations to the respective deriving clauses in 'Utils.hs' 
+-- I'm not adding these instance declarations to the respective deriving clauses in 'Utils.hs'
 -- because I want to keep it as a temporary verbatim copy in my code base only.
 -- Once my pull request is accepted these instance declarations can be removed from here.
 instance Eq Qualifier where
   a == b = qualifierNodes a == qualifierNodes b
-  
+
 instance Eq Import where
   Import { impMod = mA, impType = iA } == Import { impMod = mB, impType = iB } =
-    mA == mB && iA == iB  
+    mA == mB && iA == iB
