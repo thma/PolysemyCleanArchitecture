@@ -1,6 +1,7 @@
 module CleanArchitectureSpec where
 
 import Data.List (intercalate)
+import Data.Either (partitionEithers)
 import Test.Hspec
 import Utils
 import System.Directory
@@ -8,43 +9,49 @@ import System.Directory
 main :: IO ()
 main = hspec spec
 
+spec :: Spec
+spec =
+  describe "The Dependency Checker" $ do
+    it "makes sure all modules comply to the outside-in rule" $ do
+      allImports <- allImportDeclarations "src"
+      verifyAllDependencies allImports `shouldBe` Right ()
+    it "finds non-compliant import declarations" $ do
+      verifyAllDependencies [bogusDependency] `shouldBe` 
+        Left ["offending import declaration found in: Domain.ReservationDomain referencing modules in outer layers: [\"ExternalInterfaces.FileConfigProvider\"]"]
+
+-- | this instance represents a non-compliant dependency from the 'Domain' package to the 'ExternalInterfaces' package.
+bogusDependency :: (ModName, [Import])
 bogusDependency = (mod, [imp]) 
   where
     mod =  (fromHierarchy ["Domain"],"ReservationDomain") 
     imp = Import { impMod = (fromHierarchy ["ExternalInterfaces"],"FileConfigProvider"), impType = NormalImp }
 
-verifyBogusDependencies :: FilePath -> Bool
-verifyBogusDependencies dir = 
-  all verifyImportDecl [bogusDependency]
-
-spec :: Spec
-spec =
-  describe "The Dependency Checker" $ do
-    it "makes sure all modules comply to the outside-in rule" $ do
-      check <- verifyAllDependencies "src"
-      check `shouldBe` True
-    it "finds non-compliant import declarations" $ do
-      print (verifyBogusDependencies "src") `shouldThrow` 
-        errorCall "offending import declaration found in: Domain.ReservationDomain referencing modules in outer layers: [\"ExternalInterfaces.FileConfigProvider\"]"
-
--- | verify the dependencies of all Haskell modules in directory 'dir' (and its sub-directories).
-verifyAllDependencies :: FilePath -> IO Bool
-verifyAllDependencies dir = do
-  allImports <- allImportDeclarations dir
-  pure $ all verifyImportDecl allImports
+-- | verify the dependencies of a list of module import declarations. The results are collected into a list of Eithers.
+verifyAllDependencies ::  [ModuleImportDeclarations] -> Either [String] ()
+verifyAllDependencies imports = do
+  let results = map verifyImportDecl imports
+  let (errs, _compliant) = partitionEithers results
+  if null errs
+    then Right ()
+    else Left errs
 
 -- | this function verifies all import declarations of a Haskell module.
 --   If offending imports are found, a diagnostic error message is produced.
-verifyImportDecl :: ModuleImportDeclarations -> Bool
+verifyImportDecl :: ModuleImportDeclarations -> Either String ()
 verifyImportDecl (packageFrom, imports) =
   let offending = filter (not . verify packageFrom) imports
-   in null offending
-        || error
-          ( "offending import declaration found in: " ++ ppModule packageFrom
+   in if null offending
+        then Right ()
+        else Left
+          ("offending import declaration found in: " ++ ppModule packageFrom
               ++ " referencing modules in outer layers: "
               ++ show (map (ppModule . impMod) offending)
           )
   where
+    -- | verifies a single import declaration. 
+    --   An import is compliant iff:
+    --   1. it refers to some external package which not member of the 'packages' list
+    --   2. the package dependency is a member of the compliant dependencies between elements of the 'packages' list.
     verify :: ModName -> Import -> Bool
     verify pFrom imp =
       importPackage imp `notElem` packages
