@@ -16,8 +16,9 @@ spec =
       allImports <- allImportDeclarations "src"
       verifyAllDependencies allImports `shouldBe` Right ()
     it "finds non-compliant import declarations" $ do
-      verifyAllDependencies [bogusDependency] `shouldBe` 
-        Left ["offending import declaration found in: Domain.ReservationDomain referencing modules in outer layers: [\"ExternalInterfaces.FileConfigProvider\"]"]
+      allImports <- allImportDeclarations "src"
+      verifyAllDependencies (allImports ++ [bogusDependency]) `shouldBe` 
+        Left [bogusDependency]
 
 -- | this instance represents a non-compliant dependency from the 'Domain' package to the 'ExternalInterfaces' package.
 bogusDependency :: (ModName, [Import])
@@ -27,7 +28,7 @@ bogusDependency = (mod, [imp])
     imp = Import { impMod = (fromHierarchy ["ExternalInterfaces"],"FileConfigProvider"), impType = NormalImp }
 
 -- | verify the dependencies of a list of module import declarations. The results are collected into a list of Eithers.
-verifyAllDependencies ::  [ModuleImportDeclarations] -> Either [String] ()
+verifyAllDependencies ::  [ModuleImportDeclarations] -> Either [(ModName, [Import])] ()
 verifyAllDependencies imports = do
   let results = map verifyImportDecl imports
   let (errs, _compliant) = partitionEithers results
@@ -37,16 +38,12 @@ verifyAllDependencies imports = do
 
 -- | this function verifies all import declarations of a Haskell module.
 --   If offending imports are found, a diagnostic error message is produced.
-verifyImportDecl :: ModuleImportDeclarations -> Either String ()
+verifyImportDecl :: ModuleImportDeclarations -> Either (ModName, [Import]) ()
 verifyImportDecl (packageFrom, imports) =
   let offending = filter (not . verify packageFrom) imports
    in if null offending
         then Right ()
-        else Left
-          ("offending import declaration found in: " ++ ppModule packageFrom
-              ++ " referencing modules in outer layers: "
-              ++ show (map (ppModule . impMod) offending)
-          )
+        else Left (packageFrom, offending)
   where
     -- | verifies a single import declaration. 
     --   An import is compliant iff:
@@ -57,7 +54,7 @@ verifyImportDecl (packageFrom, imports) =
       importPackage imp `notElem` packages
         || (modulePackage pFrom, importPackage imp) `elem` allowedDependencies packages
 
--- this type represents the package structure of a module e.g. Data.Time.Calendar resides in package Date.Time
+-- | this type represents the package structure of a module e.g. Data.Time.Calendar resides in package Date.Time
 type Package = String
 
 -- | the list of source packages in descending order from outermost to innermost package in our CleanArchitecture project
@@ -65,7 +62,7 @@ packages :: [Package]
 packages = ["ExternalInterfaces", "InterfaceAdapters", "UseCases", "Domain"]
 
 -- | for a given list of packages this function produces the set of all allowed dependency pairs between packages.
---   Allowed dependenices according to CleanArchiture:
+--   Allowed dependencies according to CleanArchitecture:
 --   1. imports within the same package
 --   2. imports from outer layers to inner layers
 allowedDependencies :: [Package] -> [(Package, Package)]
@@ -112,3 +109,13 @@ concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
 concatMapM op = foldr f (pure [])
   where
     f x xs = do x <- op x; if null x then xs else do { xs <- xs; pure $ x ++ xs }
+
+-- I'm not adding these instance declarations to the respective deriving clauses in 'Utils.hs' 
+-- because I want to keep it as a temporary verbatim copy in my code base only.
+-- Once my pull request is accepted these instance declarations can be removed from here.
+instance Eq Qualifier where
+  a == b = qualifierNodes a == qualifierNodes b
+  
+instance Eq Import where
+  Import { impMod = mA, impType = iA } == Import { impMod = mB, impType = iB } =
+    mA == mB && iA == iB  
