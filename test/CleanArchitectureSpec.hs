@@ -1,7 +1,7 @@
 module CleanArchitectureSpec where
 
 import Test.Hspec
-import DependencyChecker 
+import DependencyChecker
 
 main :: IO ()
 main = hspec spec
@@ -14,6 +14,7 @@ spec =
       verifyCleanArchitectureDependencies allImports `shouldBe` Right ()
     it "finds non-compliant import declarations" $ do
       allImports <- allImportDeclarations "src"
+      print (cleanArchitectureCompliantDeps cleanArchitecturePackages)
       verifyCleanArchitectureDependencies (allImports ++ [bogusDependency]) `shouldBe`
         Left [bogusDependency]
 

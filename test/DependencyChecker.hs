@@ -11,11 +11,14 @@ module DependencyChecker
   , verifyImportDecl
   , ppModule
   , allFiles
+  , cleanArchitectureCompliantDeps
+  , cleanArchitecturePackages
   ) where
 
 import Data.List (intercalate)
 import Data.Either (partitionEithers)
 import System.Directory
+import Control.Monad.Extra (concatMapM)
 import Utils
 
 -- | this type represents the package structure of a module e.g. Data.Time.Calendar resides in package Date.Time
@@ -27,7 +30,6 @@ verifyCleanArchitectureDependencies =
   verifyAllDependencies
     cleanArchitecturePackages
     (cleanArchitectureCompliantDeps cleanArchitecturePackages)
-
 
 -- | the list of source packages in descending order from outermost to innermost package in our CleanArchitecture project
 cleanArchitecturePackages :: [Package]
@@ -104,12 +106,6 @@ allFiles dir = do
     )
     qualifiedFiles
 
--- | A version of 'concatMap' that works with a monadic predicate.
-concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
-concatMapM op = foldr f (pure [])
-  where
-    f x xs = do x <- op x; if null x then xs else do { xs <- xs; pure $ x ++ xs }
-
 -- I'm not adding these instance declarations to the respective deriving clauses in 'Utils.hs'
 -- because I want to keep it as a temporary verbatim copy in my code base only.
 -- Once my pull request is accepted these instance declarations can be removed from here.
@@ -119,4 +115,4 @@ instance Eq Qualifier where
 instance Eq Import where
   Import { impMod = mA, impType = iA } == Import { impMod = mB, impType = iB } =
     mA == mB && iA == iB
-
+       

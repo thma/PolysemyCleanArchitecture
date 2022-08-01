@@ -77,6 +77,7 @@ dependencies:
 - filepath
 - haskell-lexer >= 1.0.2
 - directory
+- extra
 
 library:
   source-dirs: src
