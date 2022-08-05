@@ -1,7 +1,14 @@
 module CleanArchitectureSpec where
 
-import Test.Hspec
+import Test.Hspec ( hspec, describe, it, shouldBe, Spec )
 import DependencyChecker
+    ( ModName,
+      ImpType(NormalImp),
+      Import(..),
+      fromHierarchy,
+      verifyCleanArchitectureDependencies,
+      allImportDeclarations )
+
 
 main :: IO ()
 main = hspec spec
@@ -13,9 +20,7 @@ spec =
       allImports <- allImportDeclarations "src"
       verifyCleanArchitectureDependencies allImports `shouldBe` Right ()
     it "finds non-compliant import declarations" $ do
-      allImports <- allImportDeclarations "src"
-      print (cleanArchitectureCompliantDeps cleanArchitecturePackages)
-      verifyCleanArchitectureDependencies (allImports ++ [bogusDependency]) `shouldBe`
+      verifyCleanArchitectureDependencies [bogusDependency] `shouldBe`
         Left [bogusDependency]
 
 -- | this instance represents a non-compliant dependency from the 'Domain' package to the 'ExternalInterfaces' package.

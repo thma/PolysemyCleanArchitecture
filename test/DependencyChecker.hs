@@ -43,7 +43,8 @@ cleanArchitectureCompliantDeps :: [Package] -> [(Package, Package)]
 cleanArchitectureCompliantDeps [] = []
 cleanArchitectureCompliantDeps lst@(p : ps) = zip (repeat p) lst ++ cleanArchitectureCompliantDeps ps
 
--- | verify the dependencies of a list of module import declarations. The results are collected into a list of Eithers.
+-- | Verify the dependencies of a list of module import declarations. 
+--   The results are collected into an 'Either [(ModName, [Import])] ()'.
 verifyAllDependencies :: [Package] -> [(Package, Package)] -> [ModuleImportDeclarations] -> Either [(ModName, [Import])] ()
 verifyAllDependencies allPackages compliantDependencies imports= do
   let results = map (verifyImportDecl allPackages compliantDependencies) imports
