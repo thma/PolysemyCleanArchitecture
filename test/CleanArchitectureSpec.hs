@@ -3,10 +3,11 @@ module CleanArchitectureSpec where
 import Test.Hspec ( hspec, describe, it, shouldBe, Spec )
 import DependencyChecker
     ( ModName,
-      ImpType(NormalImp),
+      ImpType(..),
       Import(..),
       fromHierarchy,
       verifyCleanArchitectureDependencies,
+      formatLeftAsErrMsg,
       allImportDeclarations )
 
 
@@ -18,7 +19,7 @@ spec =
   describe "The Dependency Checker" $ do
     it "makes sure all modules comply to the outside-in rule" $ do
       allImports <- allImportDeclarations "src"
-      verifyCleanArchitectureDependencies allImports `shouldBe` Right ()
+      formatLeftAsErrMsg (verifyCleanArchitectureDependencies allImports) `shouldBe` Right ()
     it "finds non-compliant import declarations" $ do
       verifyCleanArchitectureDependencies [bogusDependency] `shouldBe`
         Left [bogusDependency]

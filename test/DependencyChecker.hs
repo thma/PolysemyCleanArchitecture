@@ -1,35 +1,46 @@
 module DependencyChecker
-  (
-    ModName
-  , fromHierarchy
-  , Import(..)
-  , ImpType(..)
-  , Package
-  , allImportDeclarations
-  , verifyCleanArchitectureDependencies
-  , verifyAllDependencies
-  , verifyImportDecl
-  , ppModule
-  , allFiles
-  , cleanArchitectureCompliantDeps
-  , cleanArchitecturePackages
-  ) where
+  ( ModName,
+    fromHierarchy,
+    Import (..),
+    ImpType (..),
+    Package,
+    allImportDeclarations,
+    verifyCleanArchitectureDependencies,
+    verifyAllDependencies,
+    verifyImportDecl,
+    ppModule,
+    allFiles,
+    cleanArchitectureCompliantDeps,
+    cleanArchitecturePackages,
+    formatLeftAsErrMsg,
+  )
+where
 
-import Data.List (intercalate)
-import Data.Either (partitionEithers)
-import System.Directory
-import Control.Monad.Extra (concatMapM)
-import Utils
+import           Control.Monad.Extra (concatMapM)
+import           Data.Either         (partitionEithers)
+import           Data.List           (intercalate)
+import           System.Directory
+import           Utils
 
 -- | this type represents the package structure of a module e.g. Data.Time.Calendar resides in package Date.Time
 type Package = String
 
 -- | verify a list of ModuleImportDeclarations to comply to the clean architecture dependency rules.
-verifyCleanArchitectureDependencies :: [ModuleImportDeclarations] -> Either [(ModName, [Import])] ()
+verifyCleanArchitectureDependencies :: [ModuleImportDeclarations] -> Either [ModuleImportDeclarations] ()
 verifyCleanArchitectureDependencies =
   verifyAllDependencies
     cleanArchitecturePackages
     (cleanArchitectureCompliantDeps cleanArchitecturePackages)
+
+-- | Right () is returned unchanged, 
+--   Left imports will be rendered as a human readable error message.
+--   This function may be handy in test cases.
+formatLeftAsErrMsg :: Either [ModuleImportDeclarations] () -> Either [String] ()
+formatLeftAsErrMsg (Right ()) = Right ()
+formatLeftAsErrMsg (Left imports) = Left (map toString imports)
+  where
+    toString :: ModuleImportDeclarations -> String
+    toString (modName, imports) = ppModule modName ++ " imports " ++ intercalate ", " (map (ppModule . impMod) imports)
 
 -- | the list of source packages in descending order from outermost to innermost package in our CleanArchitecture project
 cleanArchitecturePackages :: [Package]
@@ -43,10 +54,10 @@ cleanArchitectureCompliantDeps :: [Package] -> [(Package, Package)]
 cleanArchitectureCompliantDeps [] = []
 cleanArchitectureCompliantDeps lst@(p : ps) = zip (repeat p) lst ++ cleanArchitectureCompliantDeps ps
 
--- | Verify the dependencies of a list of module import declarations. 
+-- | Verify the dependencies of a list of module import declarations.
 --   The results are collected into an 'Either [(ModName, [Import])] ()'.
-verifyAllDependencies :: [Package] -> [(Package, Package)] -> [ModuleImportDeclarations] -> Either [(ModName, [Import])] ()
-verifyAllDependencies allPackages compliantDependencies imports= do
+verifyAllDependencies :: [Package] -> [(Package, Package)] -> [ModuleImportDeclarations] -> Either [ModuleImportDeclarations] ()
+verifyAllDependencies allPackages compliantDependencies imports = do
   let results = map (verifyImportDecl allPackages compliantDependencies) imports
   let (errs, _compliant) = partitionEithers results
   if null errs
@@ -55,22 +66,17 @@ verifyAllDependencies allPackages compliantDependencies imports= do
 
 -- | this function verifies all import declarations of a Haskell module.
 --   If offending imports are found, a diagnostic error message is produced.
-verifyImportDecl :: [Package] -> [(Package, Package)] -> ModuleImportDeclarations -> Either (ModName, [Import]) ()
+verifyImportDecl :: [Package] -> [(Package, Package)] -> ModuleImportDeclarations -> Either ModuleImportDeclarations ()
 verifyImportDecl allPackages compliantDependencies (packageFrom, imports) =
   let offending = filter (not . verify packageFrom) imports
    in if null offending
         then Right ()
         else Left (packageFrom, offending)
   where
-    -- | verifies a single import declaration.
-    --   An import is compliant iff:
-    --   1. it refers to some external package which not member of the 'packages' list
-    --   2. the package dependency is a member of the compliant dependencies between elements of the 'packages' list.
     verify :: ModName -> Import -> Bool
     verify pFrom imp =
       importPackage imp `notElem` allPackages
         || (modulePackage pFrom, importPackage imp) `elem` compliantDependencies --allowedDependencies packages
-
 
 -- | this function returns the Package information from an Import definition
 importPackage :: Import -> Package
@@ -114,6 +120,5 @@ instance Eq Qualifier where
   a == b = qualifierNodes a == qualifierNodes b
 
 instance Eq Import where
-  Import { impMod = mA, impType = iA } == Import { impMod = mB, impType = iB } =
+  Import {impMod = mA, impType = iA} == Import {impMod = mB, impType = iB} =
     mA == mB && iA == iB
-       
