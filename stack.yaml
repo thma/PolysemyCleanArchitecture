@@ -36,7 +36,10 @@ packages:
 # forks / in-progress versions pinned to a git hash. For example:
 #
 extra-deps:
-- wai-handler-hal-0.1.2.0@sha256:56b990afbcd1aa86522edd92bef22cdf3acf79b45176345671d96ccca14772be,2878
+  - wai-handler-hal-0.1.2.0@sha256:56b990afbcd1aa86522edd92bef22cdf3acf79b45176345671d96ccca14772be,2878
+  - git: https://github.com/yav/graphmod.git
+    commit: 79cc6502b48e577632d57b3a9b479436b0739726
+
   #- ../graphmod
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git

@@ -75,7 +75,6 @@ dependencies:
 - lens
 - process
 - filepath
-- haskell-lexer >= 1.0.2
 - directory
 - extra
 
@@ -104,4 +103,4 @@ tests:
     - hspec-wai
 #    - hspec-wai-json
     - wai-extra
-#    - graphmod >= 1.4.5
+    - graphmod >= 1.4.4

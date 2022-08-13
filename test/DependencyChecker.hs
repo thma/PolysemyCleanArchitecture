@@ -20,7 +20,7 @@ import           Control.Monad.Extra (concatMapM)
 import           Data.Either         (partitionEithers)
 import           Data.List           (intercalate)
 import           System.Directory
-import           Utils
+import           Graphmod.Utils
 
 -- | this type represents the package structure of a module e.g. Data.Time.Calendar resides in package Date.Time
 type Package = String
@@ -112,13 +112,3 @@ allFiles dir = do
           else return [f]
     )
     qualifiedFiles
-
--- I'm not adding these instance declarations to the respective deriving clauses in 'Utils.hs'
--- because I want to keep it as a temporary verbatim copy in my code base only.
--- Once my pull request is accepted these instance declarations can be removed from here.
-instance Eq Qualifier where
-  a == b = qualifierNodes a == qualifierNodes b
-
-instance Eq Import where
-  Import {impMod = mA, impType = iA} == Import {impMod = mB, impType = iB} =
-    mA == mB && iA == iB
